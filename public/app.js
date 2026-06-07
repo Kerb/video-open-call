@@ -490,6 +490,72 @@ async function handleJoinRoom() {
 }
 
 /* Control buttons */
+async function toggleScreenShare() {
+  if (state.isScreenSharing) {
+    stopScreenShare();
+  } else {
+    await startScreenShare();
+  }
+}
+
+async function startScreenShare() {
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    state.screenStream = stream;
+    const screenTrack = stream.getVideoTracks()[0];
+
+    const videoSender = state.peerConnection
+      .getSenders()
+      .find((s) => s.track && s.track.kind === 'video');
+    if (!videoSender) {
+      showNotification('Ошибка: видеотрек не найден', 'error');
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+
+    state.savedCameraTrack = videoSender.track;
+
+    await videoSender.replaceTrack(screenTrack);
+
+    $('localVideo').srcObject = stream;
+    state.isScreenSharing = true;
+    $('btn-screen').dataset.active = 'true';
+
+    state.socket.emit('screen-share-state-change', { active: true });
+
+    screenTrack.onended = () => {
+      stopScreenShare();
+    };
+  } catch (err) {
+    if (err.name === 'NotAllowedError') {
+      showNotification('Доступ к экрану запрещён', 'error');
+    }
+  }
+}
+
+function stopScreenShare() {
+  if (!state.isScreenSharing) return;
+
+  const videoSender = state.peerConnection
+    .getSenders()
+    .find((s) => s.track && s.track.kind === 'video');
+  if (videoSender && state.savedCameraTrack) {
+    videoSender.replaceTrack(state.savedCameraTrack);
+  }
+
+  if (state.screenStream) {
+    state.screenStream.getTracks().forEach((t) => t.stop());
+    state.screenStream = null;
+  }
+
+  $('localVideo').srcObject = state.localStream;
+  state.isScreenSharing = false;
+  state.savedCameraTrack = null;
+  $('btn-screen').dataset.active = 'false';
+
+  state.socket.emit('screen-share-state-change', { active: false });
+}
+
 function toggleMute() {
   if (!state.localStream) return;
   const audioTracks = state.localStream.getAudioTracks();
@@ -511,6 +577,7 @@ function toggleSpeaker() {
 }
 
 function toggleCamera() {
+  if (state.isScreenSharing) return;
   if (!state.localStream) return;
   const videoTracks = state.localStream.getVideoTracks();
   if (videoTracks.length === 0) return;
@@ -640,6 +707,7 @@ function init() {
   $('btn-mute').addEventListener('click', toggleMute);
   $('btn-speaker').addEventListener('click', toggleSpeaker);
   $('btn-camera').addEventListener('click', toggleCamera);
+  $('btn-screen').addEventListener('click', toggleScreenShare);
   $('btn-chat').addEventListener('click', toggleChat);
   $('btn-hangup').addEventListener('click', handleHangup);
   $('copy-link').addEventListener('click', (e) => {
