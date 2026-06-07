@@ -339,6 +339,32 @@ body {
 }
 
 /* ======================== */
+/* REMOTE SCREEN INDICATOR  */
+/* ======================== */
+
+#remote-screen-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+#remote-screen-indicator svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ======================== */
 /* ROOM INFO BAR            */
 /* ======================== */
 
