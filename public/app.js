@@ -499,7 +499,10 @@ async function toggleScreenShare() {
 }
 
 async function startScreenShare() {
-  if (!state.peerConnection) return;
+  if (!state.peerConnection) {
+    showNotification('Демонстрация экрана доступна только во время звонка', 'info');
+    return;
+  }
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     state.screenStream = stream;
