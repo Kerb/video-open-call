@@ -2,7 +2,7 @@
 
 **Статус:** 🟢 Завершено  
 **Дата начала:** 07.06.2026  
-**Цель:** MVP с двумя пользователями, комнатой по 6-символьному коду, видео/аудиосвязью, текстовым чатом
+**Цель:** MVP с двумя пользователями, комнатой по 6-символьному коду, видео/аудиосвязью, текстовым чатом, демонстрацией экрана, переподключением при обрыве
 
 ---
 
@@ -172,7 +172,7 @@
 - [x] Замена 6 отдельных полей на одно текстовое поле
 - [x] `sanitizeCodeInput()` — uppercase, фильтрация `[^A-Z0-9]`, обрезка до 6
 - [x] Корректная вставка из буфера обмена
-- [x] Тесты для `sanitizeCodeInput()` и `getRawInput()`
+- [x] Тесты для `sanitizeCodeInput()`
 
 ---
 
@@ -219,6 +219,30 @@
 
 ---
 
+---
+
+## Этап 12: Reconnection — переподключение при обрыве соединения
+**Статус:** 🟢 Завершено
+
+- [x] Добавить состояние `DISCONNECTED` в state machine + тесты
+- [x] Перевести серверную модель комнат на слоты с UUID (`slots: Map<uuid, Slot>`)
+- [x] Модифицировать `create-room` и `join-room` — принимать `uuid`
+- [x] Модифицировать `disconnect` — сохранять слот на 30 сек без удаления
+- [x] Добавить событие `reconnect-room` — восстановление слота по UUID
+- [x] Добавить событие `peer-reconnected` — уведомить второго участника
+- [x] Модифицировать `peer-disconnected { canReconnect }` — флаг возможности reconnect
+- [x] Клиент: `getOrCreateUUID()` — генерация/чтение UUID из localStorage
+- [x] Клиент: `showReconnectingOverlay()` / `showPeerWaitingOverlay()` — UI уведомления
+- [x] Клиент: handler `reconnect-success` — сброс reconnect, повторный WebRTC handshake
+- [x] Клиент: handler `peer-reconnected` — скрыть overlay ожидания
+- [x] Клиент: `onconnectionstatechange` — не завершать звонок при reconnect
+- [x] HTML/CSS: reconnecting overlay, peer-reconnecting indicator
+- [x] Кнопка «Выйти из комнаты» во время reconnect overlay
+- [x] Очистка reconnect состояния в `endCall()`
+- [x] Тесты: reconnection scenarios (disconnect, reconnect, timer expiry)
+
+---
+
 ## Легенда
 
 | Символ | Значение |
@@ -232,6 +256,6 @@
 
 ## Прогресс
 
-**Всего задач:** ~105  
-**Завершено:** ~103  
-**Прогресс:** ~98%
+**Всего задач:** ~125  
+**Завершено:** ~125  
+**Прогресс:** ~100%
