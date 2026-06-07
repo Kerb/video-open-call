@@ -1,14 +1,41 @@
+const STATE = {
+  HOME: 'home',
+  JOIN_MODAL: 'join-modal',
+  WAITING: 'waiting',
+  CONNECTING: 'connecting',
+  IN_CALL: 'in-call',
+};
+
+const STATE_TRANSITIONS = {
+  [STATE.HOME]: [STATE.JOIN_MODAL, STATE.WAITING],
+  [STATE.JOIN_MODAL]: [STATE.HOME, STATE.WAITING],
+  [STATE.WAITING]: [STATE.CONNECTING, STATE.HOME],
+  [STATE.CONNECTING]: [STATE.IN_CALL, STATE.HOME],
+  [STATE.IN_CALL]: [STATE.HOME],
+};
+
 const state = {
+  appState: STATE.HOME,
   socket: null,
   localStream: null,
   peerConnection: null,
   roomCode: null,
   isRoomCreator: false,
-  isInCall: false,
   pendingStartWebRTC: false,
   pendingOffer: null,
   chatUnread: 0,
 };
+
+function transition(newState) {
+  const allowed = STATE_TRANSITIONS[state.appState];
+  if (!allowed || !allowed.includes(newState)) {
+    console.warn(`Invalid transition: ${state.appState} → ${newState}`);
+    return false;
+  }
+  state.appState = newState;
+  console.log(`State: ${newState}`);
+  return true;
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -54,7 +81,7 @@ function connectSocket() {
 
   state.socket.on('disconnect', () => {
     console.log('Socket disconnected');
-    if (state.isInCall) {
+    if (state.appState !== STATE.HOME) {
       showNotification('Потеря соединения с сервером', 'error');
     }
   });
@@ -71,17 +98,20 @@ function connectSocket() {
   state.socket.on('room-created', ({ code }) => {
     state.roomCode = code;
     state.isRoomCreator = true;
+    transition(STATE.WAITING);
     enterRoom(code);
   });
 
   state.socket.on('room-joined', ({ code }) => {
     state.roomCode = code;
     state.isRoomCreator = false;
+    transition(STATE.WAITING);
     enterRoom(code);
   });
 
   state.socket.on('user-joined', () => {
     showNotification('Пользователь подключился', 'success');
+    transition(STATE.CONNECTING);
     if (state.localStream) {
       startWebRTC(true);
     } else {
@@ -90,6 +120,7 @@ function connectSocket() {
   });
 
   state.socket.on('offer', ({ sdp }) => {
+    transition(STATE.CONNECTING);
     if (state.localStream) {
       handleOffer(sdp);
     } else {
@@ -131,7 +162,7 @@ function connectSocket() {
     if (panel.style.display === 'none') {
       state.chatUnread++;
       updateChatBadge();
-      showNotification('Новое сообщение в чате', 'info');
+      showChatToast(text);
     }
   });
 
@@ -204,6 +235,9 @@ function createPeerConnection() {
 
   pc.onconnectionstatechange = () => {
     console.log('Connection state:', pc.connectionState);
+    if (pc.connectionState === 'connected') {
+      transition(STATE.IN_CALL);
+    }
     if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
       showNotification('Соединение потеряно', 'error');
       endCall();
@@ -229,7 +263,6 @@ function createPeerConnection() {
 }
 
 async function startWebRTC(asCreator) {
-  state.isInCall = true;
   const pc = createPeerConnection();
 
   if (asCreator) {
@@ -245,7 +278,6 @@ async function startWebRTC(asCreator) {
 }
 
 async function handleOffer(sdp) {
-  state.isInCall = true;
   const pc = createPeerConnection();
 
   try {
@@ -278,7 +310,7 @@ async function handleIceCandidate(candidate) {
 }
 
 function endCall() {
-  state.isInCall = false;
+  transition(STATE.HOME);
 
   if (state.peerConnection) {
     state.peerConnection.close();
@@ -416,12 +448,14 @@ function enableJoinButton() {
 /* ===================================================== */
 
 function openModal() {
+  if (!transition(STATE.JOIN_MODAL)) return;
   $('join-modal').style.display = 'flex';
   clearModalError();
   clearCodeInputs();
 }
 
 function closeModal() {
+  transition(STATE.HOME);
   $('join-modal').style.display = 'none';
   clearModalError();
 }
@@ -527,6 +561,20 @@ function scrollChatToBottom() {
   messages.scrollTop = messages.scrollHeight;
 }
 
+function showChatToast(text) {
+  const toast = $('chat-toast');
+  toast.textContent = text.length > 50 ? text.slice(0, 47) + '...' : text;
+  toast.style.display = 'block';
+  toast.classList.remove('chat-toast-hide');
+  toast.classList.add('chat-toast-show');
+  if (state.chatToastTimer) clearTimeout(state.chatToastTimer);
+  state.chatToastTimer = setTimeout(() => {
+    toast.classList.remove('chat-toast-show');
+    toast.classList.add('chat-toast-hide');
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 3000);
+}
+
 function addChatMessage(text, isOwn) {
   const messages = $('chat-messages');
   const div = document.createElement('div');
@@ -557,12 +605,12 @@ function init() {
 
   /* Home screen */
   $('btn-create').addEventListener('click', () => {
-    if (state.isInCall) return;
+    if (state.appState !== STATE.HOME) return;
     state.socket.emit('create-room');
   });
 
   $('btn-join').addEventListener('click', () => {
-    if (state.isInCall) return;
+    if (state.appState !== STATE.HOME) return;
     openModal();
   });
 

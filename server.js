@@ -10,23 +10,12 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 
+const { generateCode } = require('./src/code');
+
 const rooms = new Map();
 
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const CODE_LENGTH = 6;
 const EMPTY_ROOM_TIMEOUT = 30 * 60 * 1000;
 const GRACE_PERIOD = 5 * 60 * 1000;
-
-function generateCode() {
-  let code;
-  do {
-    code = '';
-    for (let i = 0; i < CODE_LENGTH; i++) {
-      code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
-    }
-  } while (rooms.has(code));
-  return code;
-}
 
 function cleanUpRoom(code) {
   if (rooms.has(code)) {
@@ -46,7 +35,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const code = generateCode();
+    const code = generateCode(new Set(rooms.keys()));
     const room = {
       code,
       sockets: new Map([[socket.id, socket]]),

@@ -610,6 +610,43 @@ body {
   z-index: 1;
 }
 
+/* ======================== */
+/* CHAT TOAST               */
+/* ======================== */
+
+.chat-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  background: var(--primary);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  max-width: calc(100vw - 32px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.chat-toast-show {
+  animation: slideUp 0.25s ease forwards;
+}
+
+.chat-toast-hide {
+  animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 .notification.error {
   background: var(--danger);
   color: #fff;
