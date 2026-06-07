@@ -391,60 +391,6 @@ function enterRoom(code) {
 /* MODAL — Code Input                                    */
 /* ===================================================== */
 
-const CODE_INPUTS = document.querySelectorAll('.code-input');
-
-function setupCodeInputs() {
-  CODE_INPUTS.forEach((input) => {
-    input.addEventListener('input', (e) => {
-      let char = e.target.value.toUpperCase();
-      char = char.replace(/[^A-Z0-9]/g, '');
-      if (char.length > 1) char = char[char.length - 1];
-      e.target.value = char;
-
-      if (char) {
-        const next = e.target.nextElementSibling;
-        if (next && next.classList.contains('code-input')) {
-          next.focus();
-        } else {
-          $('btn-join-room').focus();
-        }
-      }
-    });
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Backspace' && !e.target.value) {
-        const prev = e.target.previousElementSibling;
-        if (prev && prev.classList.contains('code-input')) {
-          prev.focus();
-        }
-      }
-
-      if (e.key === 'Enter') {
-        handleJoinRoom();
-      }
-    });
-
-    input.addEventListener('focus', (e) => {
-      e.target.select();
-    });
-  });
-}
-
-function getCodeFromInputs() {
-  let code = '';
-  CODE_INPUTS.forEach((input) => {
-    code += input.value.toUpperCase();
-  });
-  return code;
-}
-
-function clearCodeInputs() {
-  CODE_INPUTS.forEach((input) => {
-    input.value = '';
-  });
-  CODE_INPUTS[0].focus();
-}
-
 function showModalError(msg) {
   $('modal-error').textContent = msg;
 }
@@ -466,7 +412,9 @@ function openModal() {
   if (!transition(STATE.JOIN_MODAL)) return;
   $('join-modal').style.display = 'flex';
   clearModalError();
-  clearCodeInputs();
+  const input = $('code-input');
+  input.value = '';
+  input.focus();
 }
 
 function closeModal() {
@@ -476,7 +424,8 @@ function closeModal() {
 }
 
 async function handleJoinRoom() {
-  const code = getCodeFromInputs();
+  const input = $('code-input');
+  const code = input.value.toUpperCase();
   if (code.length !== 6) {
     showModalError('Введите 6 символов');
     return;
@@ -690,7 +639,6 @@ function sendChatMessage() {
 /* ===================================================== */
 
 function init() {
-  setupCodeInputs();
   connectSocket();
 
   /* Home screen */
@@ -709,6 +657,15 @@ function init() {
   $('btn-close-modal').addEventListener('click', closeModal);
   $('join-modal').addEventListener('click', (e) => {
     if (e.target === $('join-modal')) closeModal();
+  });
+
+  const codeInput = $('code-input');
+  codeInput.addEventListener('input', (e) => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+  });
+
+  codeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleJoinRoom();
   });
 
   /* Room controls */
