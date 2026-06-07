@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateCode, isValidCode, sanitizeCodeInput, getRawInput, CODE_ALPHABET, CODE_LENGTH } from '../src/code.js';
+import { generateCode, isValidCode, sanitizeCodeInput, CODE_ALPHABET, CODE_LENGTH } from '../src/code.js';
 
 describe('generateCode', () => {
   it('should return a string of correct length', () => {
@@ -97,28 +97,3 @@ describe('sanitizeCodeInput', () => {
   });
 });
 
-describe('getRawInput', () => {
-  it('should strip spaces', () => {
-    expect(getRawInput('ABC 234')).toBe('ABC234');
-  });
-
-  it('should strip dashes', () => {
-    expect(getRawInput('ABC-234')).toBe('ABC234');
-  });
-
-  it('should strip dots', () => {
-    expect(getRawInput('AB.C2.34')).toBe('ABC234');
-  });
-
-  it('should strip mixed separators', () => {
-    expect(getRawInput('A-B C.2 34')).toBe('ABC234');
-  });
-
-  it('should handle already clean input', () => {
-    expect(getRawInput('XYZ789')).toBe('XYZ789');
-  });
-
-  it('should return empty for all-separator input', () => {
-    expect(getRawInput('- - . -')).toBe('');
-  });
-});
