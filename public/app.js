@@ -492,13 +492,14 @@ async function handleJoinRoom() {
 /* Control buttons */
 async function toggleScreenShare() {
   if (state.isScreenSharing) {
-    stopScreenShare();
+    await stopScreenShare();
   } else {
     await startScreenShare();
   }
 }
 
 async function startScreenShare() {
+  if (!state.peerConnection) return;
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     state.screenStream = stream;
@@ -524,23 +525,27 @@ async function startScreenShare() {
     state.socket.emit('screen-share-state-change', { active: true });
 
     screenTrack.onended = () => {
-      stopScreenShare();
+      stopScreenShare().catch((e) => console.error('stopScreenShare onended error:', e));
     };
   } catch (err) {
     if (err.name === 'NotAllowedError') {
       showNotification('Доступ к экрану запрещён', 'error');
+    } else if (err.name === 'AbortError') {
+      // Пользователь отменил выбор экрана — silent ignore
+    } else {
+      console.error('startScreenShare error:', err);
     }
   }
 }
 
-function stopScreenShare() {
+async function stopScreenShare() {
   if (!state.isScreenSharing) return;
 
   const videoSender = state.peerConnection
     .getSenders()
     .find((s) => s.track && s.track.kind === 'video');
   if (videoSender && state.savedCameraTrack) {
-    videoSender.replaceTrack(state.savedCameraTrack);
+    await videoSender.replaceTrack(state.savedCameraTrack);
   }
 
   if (state.screenStream) {
