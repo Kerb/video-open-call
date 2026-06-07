@@ -16,6 +16,7 @@ const rooms = new Map();
 
 const EMPTY_ROOM_TIMEOUT = 30 * 60 * 1000;
 const GRACE_PERIOD = 5 * 60 * 1000;
+const RECONNECT_TIMEOUT = 30000;
 
 function cleanUpRoom(code) {
   if (rooms.has(code)) {
@@ -146,7 +147,41 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    leaveRoom(socket);
+    handleSocketDisconnect(socket);
+  });
+
+  socket.on('reconnect-room', ({ code, uuid }) => {
+    if (!code || !uuid) return;
+    if (socket.currentRoom) {
+      socket.emit('room-error', { message: 'Вы уже находитесь в комнате' });
+      return;
+    }
+    const room = rooms.get(code.toUpperCase());
+    if (!room) {
+      socket.emit('room-not-found');
+      return;
+    }
+    const slot = room.slots.get(uuid);
+    if (!slot) {
+      socket.emit('room-error', { message: 'Слот не найден' });
+      return;
+    }
+    if (slot.reconnectTimer) {
+      clearTimeout(slot.reconnectTimer);
+      slot.reconnectTimer = null;
+    }
+    slot.socket = socket;
+    slot.connected = true;
+    room.socketToUuid.set(socket.id, uuid);
+    socket.currentRoom = code.toUpperCase();
+    socket.join(code.toUpperCase());
+
+    socket.emit('reconnect-success', { code: code.toUpperCase(), isCreator: slot.isCreator });
+
+    const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
+    if (otherSlot && otherSlot.socket) {
+      otherSlot.socket.emit('peer-reconnected', { uuid });
+    }
   });
 });
 
@@ -178,6 +213,62 @@ function leaveRoom(socket) {
   }
 
   socket.currentRoom = null;
+}
+
+const RECONNECT_TIMEOUT = 30000;
+
+function handleSocketDisconnect(socket) {
+  const code = socket.currentRoom;
+  if (!code) return;
+
+  const room = rooms.get(code);
+  if (!room) {
+    socket.currentRoom = null;
+    return;
+  }
+
+  const uuid = room.socketToUuid.get(socket.id);
+  if (!uuid) {
+    socket.currentRoom = null;
+    return;
+  }
+
+  const slot = room.slots.get(uuid);
+  if (!slot) {
+    socket.currentRoom = null;
+    return;
+  }
+
+  // Ignore stale disconnect if slot was already reassigned to a different socket
+  if (slot.socket && slot.socket.id !== socket.id) {
+    socket.currentRoom = null;
+    return;
+  }
+
+  slot.socket = null;
+  slot.connected = false;
+  room.socketToUuid.delete(socket.id);
+  socket.currentRoom = null;
+
+  const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
+  if (otherSlot && otherSlot.socket) {
+    otherSlot.socket.emit('peer-disconnected', { canReconnect: true });
+  }
+
+  if (slot.reconnectTimer) clearTimeout(slot.reconnectTimer);
+  slot.reconnectTimer = setTimeout(() => {
+    room.slots.delete(uuid);
+    const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
+    if (otherSlot && otherSlot.socket) {
+      otherSlot.socket.emit('peer-disconnected', { canReconnect: false });
+    }
+    if (room.slots.size === 0) {
+      if (room.graceTimer) clearTimeout(room.graceTimer);
+      room.graceTimer = setTimeout(() => {
+        cleanUpRoom(code);
+      }, GRACE_PERIOD);
+    }
+  }, RECONNECT_TIMEOUT);
 }
 
 server.listen(PORT, () => {
