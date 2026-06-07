@@ -6,6 +6,7 @@ const state = {
   isRoomCreator: false,
   isInCall: false,
   pendingStartWebRTC: false,
+  pendingOffer: null,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -88,7 +89,11 @@ function connectSocket() {
   });
 
   state.socket.on('offer', ({ sdp }) => {
-    handleOffer(sdp);
+    if (state.localStream) {
+      handleOffer(sdp);
+    } else {
+      state.pendingOffer = sdp;
+    }
   });
 
   state.socket.on('answer', ({ sdp }) => {
@@ -277,6 +282,18 @@ function endCall() {
 
   state.roomCode = null;
   state.isRoomCreator = false;
+  state.pendingStartWebRTC = false;
+  state.pendingOffer = null;
+}
+
+function addLocalTracksToPC() {
+  if (!state.peerConnection || !state.localStream) return;
+  const senders = state.peerConnection.getSenders().map((s) => s.track && s.track.kind);
+  state.localStream.getTracks().forEach((track) => {
+    if (!senders.includes(track.kind)) {
+      state.peerConnection.addTrack(track, state.localStream);
+    }
+  });
 }
 
 function enterRoom(code) {
@@ -287,10 +304,16 @@ function enterRoom(code) {
   getLocalMedia().then((hasMedia) => {
     if (hasMedia) {
       $('local-placeholder').style.display = 'none';
+      addLocalTracksToPC();
     }
     if (state.pendingStartWebRTC && hasMedia) {
       state.pendingStartWebRTC = false;
       startWebRTC(true);
+    }
+    if (state.pendingOffer) {
+      const sdp = state.pendingOffer;
+      state.pendingOffer = null;
+      handleOffer(sdp);
     }
   });
 }
