@@ -664,6 +664,10 @@ function init() {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   });
 
+  codeInput.addEventListener('focus', (e) => {
+    e.target.select();
+  });
+
   codeInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleJoinRoom();
   });
