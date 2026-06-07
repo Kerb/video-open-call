@@ -215,8 +215,6 @@ function leaveRoom(socket) {
   socket.currentRoom = null;
 }
 
-const RECONNECT_TIMEOUT = 30000;
-
 function handleSocketDisconnect(socket) {
   const code = socket.currentRoom;
   if (!code) return;

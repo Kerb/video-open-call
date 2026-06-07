@@ -4,14 +4,16 @@ const STATE = {
   WAITING: 'waiting',
   CONNECTING: 'connecting',
   IN_CALL: 'in-call',
+  DISCONNECTED: 'disconnected',
 };
 
 const STATE_TRANSITIONS = {
   [STATE.HOME]: [STATE.JOIN_MODAL, STATE.WAITING],
   [STATE.JOIN_MODAL]: [STATE.HOME, STATE.WAITING],
-  [STATE.WAITING]: [STATE.CONNECTING, STATE.HOME],
-  [STATE.CONNECTING]: [STATE.IN_CALL, STATE.HOME],
-  [STATE.IN_CALL]: [STATE.HOME],
+  [STATE.WAITING]: [STATE.CONNECTING, STATE.DISCONNECTED, STATE.HOME],
+  [STATE.CONNECTING]: [STATE.IN_CALL, STATE.DISCONNECTED, STATE.HOME],
+  [STATE.IN_CALL]: [STATE.DISCONNECTED, STATE.HOME],
+  [STATE.DISCONNECTED]: [STATE.CONNECTING, STATE.HOME],
 };
 
 const state = {
@@ -27,6 +29,9 @@ const state = {
   isScreenSharing: false,
   savedCameraTrack: null,
   screenStream: null,
+  uuid: getOrCreateUUID(),
+  isReconnecting: false,
+  waitingForPeerReconnect: false,
 };
 
 function transition(newState) {
@@ -68,6 +73,34 @@ function hideNotification() {
   $('notification').style.display = 'none';
 }
 
+function showReconnectingOverlay() {
+  hidePeerWaitingOverlay();
+  $('reconnecting-overlay').style.display = 'flex';
+}
+
+function hideReconnectingOverlay() {
+  $('reconnecting-overlay').style.display = 'none';
+}
+
+function showPeerWaitingOverlay() {
+  hideReconnectingOverlay();
+  $('peer-reconnecting-indicator').style.display = 'flex';
+}
+
+function hidePeerWaitingOverlay() {
+  $('peer-reconnecting-indicator').style.display = 'none';
+}
+
+function getOrCreateUUID() {
+  const key = 'call-uuid';
+  let uuid = localStorage.getItem(key);
+  if (!uuid) {
+    uuid = crypto.randomUUID();
+    localStorage.setItem(key, uuid);
+  }
+  return uuid;
+}
+
 /* ===================================================== */
 /* SOCKET.IO                                             */
 /* ===================================================== */
@@ -84,7 +117,11 @@ function connectSocket() {
 
   state.socket.on('disconnect', () => {
     console.log('Socket disconnected');
-    if (state.appState !== STATE.HOME) {
+    if (state.roomCode && [STATE.IN_CALL, STATE.CONNECTING, STATE.WAITING, STATE.DISCONNECTED].includes(state.appState)) {
+      state.isReconnecting = true;
+      transition(STATE.DISCONNECTED);
+      showReconnectingOverlay();
+    } else if (state.appState !== STATE.HOME) {
       showNotification('Потеря соединения с сервером', 'error');
     }
   });
@@ -95,6 +132,21 @@ function connectSocket() {
 
   state.socket.on('reconnect', () => {
     console.log('Reconnected');
+    if (state.isReconnecting && state.roomCode && state.uuid) {
+      state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+    }
+  });
+
+  state.socket.on('reconnect-success', ({ code, isCreator }) => {
+    state.isReconnecting = false;
+    hideReconnectingOverlay();
+    hideNotification();
+    transition(STATE.CONNECTING);
+    closePeerConnection();
+    state.isRoomCreator = isCreator;
+    if (isCreator) {
+      startWebRTC(true);
+    }
   });
 
   /* Room events */
@@ -139,13 +191,27 @@ function connectSocket() {
     handleIceCandidate(candidate);
   });
 
-  state.socket.on('peer-disconnected', () => {
-    showNotification('Собеседник отключился', 'info');
-    endCall();
-    screens.home();
+  state.socket.on('peer-disconnected', ({ canReconnect }) => {
+    if (canReconnect) {
+      state.waitingForPeerReconnect = true;
+      transition(STATE.DISCONNECTED);
+      showPeerWaitingOverlay();
+    } else {
+      showNotification('Собеседник отключился', 'info');
+      endCall();
+      screens.home();
+    }
   });
 
   state.socket.on('room-not-found', () => {
+    if (state.isReconnecting) {
+      state.isReconnecting = false;
+      hideReconnectingOverlay();
+      showNotification('Комната больше не доступна', 'error');
+      endCall();
+      screens.home();
+      return;
+    }
     showModalError('Комната не найдена');
     enableJoinButton();
   });
@@ -175,6 +241,13 @@ function connectSocket() {
 
   state.socket.on('screen-share-state-change', ({ active }) => {
     $('remote-screen-indicator').style.display = active ? 'flex' : 'none';
+  });
+
+  state.socket.on('peer-reconnected', () => {
+    state.waitingForPeerReconnect = false;
+    hidePeerWaitingOverlay();
+    transition(STATE.CONNECTING);
+    closePeerConnection();
   });
 
   state.socket.connect();
@@ -219,6 +292,13 @@ async function getLocalMedia() {
   }
 }
 
+function closePeerConnection() {
+  if (state.peerConnection) {
+    state.peerConnection.close();
+    state.peerConnection = null;
+  }
+}
+
 function createPeerConnection() {
   if (state.peerConnection) {
     state.peerConnection.close();
@@ -246,6 +326,7 @@ function createPeerConnection() {
       transition(STATE.IN_CALL);
     }
     if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      if (state.isReconnecting || state.waitingForPeerReconnect) return;
       showNotification('Соединение потеряно', 'error');
       endCall();
       screens.home();
@@ -353,6 +434,11 @@ function endCall() {
   state.isRoomCreator = false;
   state.pendingStartWebRTC = false;
   state.pendingOffer = null;
+
+  state.isReconnecting = false;
+  state.waitingForPeerReconnect = false;
+  hideReconnectingOverlay();
+  hidePeerWaitingOverlay();
 }
 
 function addLocalTracksToPC() {
@@ -435,7 +521,7 @@ async function handleJoinRoom() {
   $('btn-join-room').disabled = true;
   $('btn-join-room').textContent = 'Подключение...';
 
-  state.socket.emit('join-room', { code });
+  state.socket.emit('join-room', { code, uuid: state.uuid });
 }
 
 /* Control buttons */
@@ -644,7 +730,7 @@ function init() {
   /* Home screen */
   $('btn-create').addEventListener('click', () => {
     if (state.appState !== STATE.HOME) return;
-    state.socket.emit('create-room');
+    state.socket.emit('create-room', { uuid: state.uuid });
   });
 
   $('btn-join').addEventListener('click', () => {
