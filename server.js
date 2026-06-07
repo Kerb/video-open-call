@@ -113,6 +113,16 @@ io.on('connection', (socket) => {
     socket.to(socket.currentRoom).emit('ice-candidate', { candidate });
   });
 
+  socket.on('send-message', ({ text }) => {
+    if (!socket.currentRoom) return;
+    socket.to(socket.currentRoom).emit('chat-message', { text, sender: socket.id });
+  });
+
+  socket.on('audio-state-change', ({ muted }) => {
+    if (!socket.currentRoom) return;
+    socket.to(socket.currentRoom).emit('audio-state-change', { muted });
+  });
+
   socket.on('leave-room', () => {
     leaveRoom(socket);
   });

@@ -7,6 +7,7 @@ const state = {
   isInCall: false,
   pendingStartWebRTC: false,
   pendingOffer: null,
+  chatUnread: 0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -122,6 +123,20 @@ function connectSocket() {
 
   state.socket.on('room-error', ({ message }) => {
     showNotification(message, 'error');
+  });
+
+  state.socket.on('chat-message', ({ text }) => {
+    addChatMessage(text, false);
+    const panel = $('chat-panel');
+    if (panel.style.display === 'none') {
+      state.chatUnread++;
+      updateChatBadge();
+      showNotification('Новое сообщение в чате', 'info');
+    }
+  });
+
+  state.socket.on('audio-state-change', ({ muted }) => {
+    $('remote-mute-indicator').style.display = muted ? 'flex' : 'none';
   });
 
   state.socket.connect();
@@ -280,6 +295,13 @@ function endCall() {
   $('local-placeholder').style.display = 'none';
   $('remote-placeholder').style.display = 'none';
 
+  $('remote-mute-indicator').style.display = 'none';
+  $('chat-panel').style.display = 'none';
+  $('btn-chat').dataset.active = 'false';
+  $('chat-messages').innerHTML = '';
+  state.chatUnread = 0;
+  updateChatBadge();
+
   state.roomCode = null;
   state.isRoomCreator = false;
   state.pendingStartWebRTC = false;
@@ -427,6 +449,9 @@ function toggleMute() {
   const enabled = !audioTracks[0].enabled;
   audioTracks[0].enabled = enabled;
   $('btn-mute').dataset.active = enabled ? 'true' : 'false';
+  if (state.socket && state.roomCode) {
+    state.socket.emit('audio-state-change', { muted: !enabled });
+  }
 }
 
 function toggleSpeaker() {
@@ -469,6 +494,60 @@ function copyRoomCode() {
 }
 
 /* ===================================================== */
+/* CHAT                                                  */
+/* ===================================================== */
+
+function toggleChat() {
+  const panel = $('chat-panel');
+  const isOpen = panel.style.display !== 'none';
+  if (isOpen) {
+    panel.style.display = 'none';
+    $('btn-chat').dataset.active = 'false';
+  } else {
+    panel.style.display = 'flex';
+    $('btn-chat').dataset.active = 'true';
+    state.chatUnread = 0;
+    updateChatBadge();
+    scrollChatToBottom();
+  }
+}
+
+function updateChatBadge() {
+  const badge = $('chat-badge');
+  if (state.chatUnread > 0) {
+    badge.textContent = state.chatUnread;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function scrollChatToBottom() {
+  const messages = $('chat-messages');
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function addChatMessage(text, isOwn) {
+  const messages = $('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-message ' + (isOwn ? 'own' : 'other');
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  div.innerHTML = text + '<span class="time">' + time + '</span>';
+  messages.appendChild(div);
+  scrollChatToBottom();
+}
+
+function sendChatMessage() {
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  state.socket.emit('send-message', { text });
+  addChatMessage(text, true);
+  input.value = '';
+  input.focus();
+}
+
+/* ===================================================== */
 /* INIT                                                  */
 /* ===================================================== */
 
@@ -498,10 +577,18 @@ function init() {
   $('btn-mute').addEventListener('click', toggleMute);
   $('btn-speaker').addEventListener('click', toggleSpeaker);
   $('btn-camera').addEventListener('click', toggleCamera);
+  $('btn-chat').addEventListener('click', toggleChat);
   $('btn-hangup').addEventListener('click', handleHangup);
   $('copy-link').addEventListener('click', (e) => {
     e.preventDefault();
     copyRoomCode();
+  });
+
+  /* Chat */
+  $('btn-close-chat').addEventListener('click', toggleChat);
+  $('btn-send-chat').addEventListener('click', sendChatMessage);
+  $('chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendChatMessage();
   });
 
   /* Tab close */
