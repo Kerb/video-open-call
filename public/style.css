@@ -1,0 +1,633 @@
+:root {
+  --bg: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+  --text: #e8e8e8;
+  --text-secondary: #a0a0b0;
+  --primary: #4f8cff;
+  --primary-hover: #3a7bf5;
+  --danger: #e74c3c;
+  --danger-hover: #c0392b;
+  --success: #2ecc71;
+  --border: #2a2a4a;
+  --control-bg: rgba(30, 30, 50, 0.85);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  height: 100%;
+  position: relative;
+}
+
+.screen {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  transition: opacity 0.3s ease;
+}
+
+/* ======================== */
+/* HOME SCREEN              */
+/* ======================== */
+
+#home-screen {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.home-content {
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.logo svg {
+  width: 64px;
+  height: 64px;
+  color: var(--primary);
+}
+
+.logo h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 40px;
+}
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ======================== */
+/* BUTTONS                  */
+/* ======================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* ======================== */
+/* MODAL                    */
+/* ======================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 24px 24px;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  text-align: center;
+  animation: slideUp 0.25s ease;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-card h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.modal-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.code-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.code-input {
+  width: 44px;
+  height: 54px;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+  letter-spacing: 2px;
+  background: var(--bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  text-transform: uppercase;
+}
+
+.code-input:focus {
+  border-color: var(--primary);
+}
+
+.modal-error {
+  color: var(--danger);
+  font-size: 14px;
+  margin-bottom: 16px;
+  min-height: 20px;
+}
+
+/* ======================== */
+/* ROOM SCREEN              */
+/* ======================== */
+
+#room-screen {
+  position: relative;
+  flex-direction: column;
+  background: #000;
+}
+
+#video-container {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.video-wrapper {
+  position: relative;
+  background: #111;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Remote video fills the container */
+#remote-container {
+  flex: 1;
+}
+
+#remote-container video {
+  object-fit: cover;
+}
+
+/* Local video in PiP */
+#local-container.pip {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 120px;
+  height: 160px;
+  border-radius: var(--radius-sm);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  z-index: 20;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+#local-container.pip video {
+  object-fit: cover;
+}
+
+/* ======================== */
+/* PLACEHOLDER              */
+/* ======================== */
+
+.placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a2e;
+  z-index: 2;
+}
+
+.placeholder svg {
+  width: 64px;
+  height: 64px;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+#local-container .placeholder svg {
+  width: 40px;
+  height: 40px;
+}
+
+/* ======================== */
+/* PIP LABEL                */
+/* ======================== */
+
+.pip-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 5;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pip-label svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ======================== */
+/* ROOM INFO BAR            */
+/* ======================== */
+
+#room-info {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  user-select: all;
+}
+
+#room-code-label strong {
+  letter-spacing: 1px;
+  font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+}
+
+.copy-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.copy-link:hover {
+  text-decoration: underline;
+}
+
+/* ======================== */
+/* CONTROLS                 */
+/* ======================== */
+
+#controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px 24px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--control-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 30;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.control-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.control-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.control-btn:active {
+  transform: scale(0.92);
+}
+
+.control-btn[data-active="false"] {
+  background: var(--danger);
+  color: #fff;
+}
+
+.control-btn[data-active="false"]:hover {
+  background: var(--danger-hover);
+}
+
+.control-btn.hangup {
+  background: var(--danger);
+}
+
+.control-btn.hangup:hover {
+  background: var(--danger-hover);
+}
+
+/* ======================== */
+/* NOTIFICATION             */
+/* ======================== */
+
+.notification {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  animation: slideDown 0.3s ease;
+  pointer-events: none;
+}
+
+.notification.error {
+  background: var(--danger);
+  color: #fff;
+}
+
+.notification.success {
+  background: var(--success);
+  color: #fff;
+}
+
+.notification.info {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ======================== */
+/* ANIMATIONS               */
+/* ======================== */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideDown {
+  from { transform: translate(-50%, -10px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* ======================== */
+/* RESPONSIVE — Desktop     */
+/* ======================== */
+
+@media (min-width: 768px) {
+  #video-container {
+    flex-direction: row;
+  }
+
+  #remote-container {
+    flex: 7;
+  }
+
+  #local-container.pip {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: auto;
+    height: auto;
+    flex: 3;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  #local-container.pip .placeholder svg {
+    width: 64px;
+    height: 64px;
+  }
+
+  #controls {
+    gap: 24px;
+    padding: 20px 32px;
+  }
+
+  .control-btn {
+    width: 56px;
+    height: 56px;
+  }
+
+  .control-btn svg {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .code-input {
+    width: 52px;
+    height: 60px;
+    font-size: 28px;
+  }
+
+  #controls {
+    gap: 28px;
+  }
+
+  .control-btn {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* ======================== */
+/* RESPONSIVE — Small       */
+/* ======================== */
+
+@media (max-width: 480px) {
+  #home-screen {
+    padding: 16px;
+  }
+
+  .logo svg {
+    width: 48px;
+    height: 48px;
+  }
+
+  .logo h1 {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    margin-bottom: 32px;
+  }
+
+  .btn {
+    padding: 14px 20px;
+    font-size: 15px;
+  }
+
+  .modal-card {
+    padding: 28px 16px 20px;
+  }
+
+  .code-input {
+    width: 38px;
+    height: 48px;
+    font-size: 20px;
+  }
+
+  .code-inputs {
+    gap: 6px;
+  }
+
+  #local-container.pip {
+    width: 90px;
+    height: 120px;
+    top: 10px;
+    right: 10px;
+  }
+
+  #room-info {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  #controls {
+    gap: 14px;
+    padding: 12px 16px;
+  }
+
+  .control-btn {
+    width: 46px;
+    height: 46px;
+  }
+
+  .control-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
