@@ -29,20 +29,32 @@ function cleanUpRoom(code) {
 io.on('connection', (socket) => {
   socket.currentRoom = null;
 
-  socket.on('create-room', () => {
+  socket.on('create-room', ({ uuid }) => {
+    if (!uuid) {
+      socket.emit('room-error', { message: 'UUID не указан' });
+      return;
+    }
     if (socket.currentRoom) {
       socket.emit('room-error', { message: 'Вы уже находитесь в комнате' });
       return;
     }
 
     const code = generateCode(new Set(rooms.keys()));
+    const slot = {
+      uuid,
+      socket,
+      isCreator: true,
+      connected: true,
+      reconnectTimer: null,
+    };
     const room = {
       code,
-      sockets: new Map([[socket.id, socket]]),
+      slots: new Map([[uuid, slot]]),
+      socketToUuid: new Map([[socket.id, uuid]]),
       createdAt: Date.now(),
       cleanupTimer: setTimeout(() => {
         const room = rooms.get(code);
-        if (room && room.sockets.size < 2) {
+        if (room && room.slots.size < 2) {
           cleanUpRoom(code);
         }
       }, EMPTY_ROOM_TIMEOUT),
@@ -55,7 +67,11 @@ io.on('connection', (socket) => {
     socket.emit('room-created', { code });
   });
 
-  socket.on('join-room', ({ code }) => {
+  socket.on('join-room', ({ code, uuid }) => {
+    if (!uuid) {
+      socket.emit('room-error', { message: 'UUID не указан' });
+      return;
+    }
     if (socket.currentRoom) {
       socket.emit('room-error', { message: 'Вы уже находитесь в комнате' });
       return;
@@ -69,7 +85,7 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (room.sockets.size >= 2) {
+    if (room.slots.size >= 2) {
       socket.emit('room-full');
       return;
     }
@@ -79,7 +95,15 @@ io.on('connection', (socket) => {
       room.cleanupTimer = null;
     }
 
-    room.sockets.set(socket.id, socket);
+    const slot = {
+      uuid,
+      socket,
+      isCreator: false,
+      connected: true,
+      reconnectTimer: null,
+    };
+    room.slots.set(uuid, slot);
+    room.socketToUuid.set(socket.id, uuid);
     socket.currentRoom = codeUpper;
     socket.join(codeUpper);
 
@@ -132,11 +156,20 @@ function leaveRoom(socket) {
 
   const room = rooms.get(code);
   if (room) {
-    socket.to(code).emit('peer-disconnected');
-    socket.leave(code);
-    room.sockets.delete(socket.id);
+    const uuid = room.socketToUuid.get(socket.id);
+    if (uuid) {
+      const slot = room.slots.get(uuid);
+      if (slot && slot.reconnectTimer) {
+        clearTimeout(slot.reconnectTimer);
+      }
+      room.slots.delete(uuid);
+      room.socketToUuid.delete(socket.id);
+    }
 
-    if (room.sockets.size === 0) {
+    socket.to(code).emit('peer-disconnected', { canReconnect: false });
+    socket.leave(code);
+
+    if (room.slots.size === 0) {
       if (room.graceTimer) clearTimeout(room.graceTimer);
       room.graceTimer = setTimeout(() => {
         cleanUpRoom(code);
