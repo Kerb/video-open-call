@@ -24,6 +24,9 @@ const state = {
   pendingStartWebRTC: false,
   pendingOffer: null,
   chatUnread: 0,
+  isScreenSharing: false,
+  savedCameraTrack: null,
+  screenStream: null,
 };
 
 function transition(newState) {
@@ -168,6 +171,10 @@ function connectSocket() {
 
   state.socket.on('audio-state-change', ({ muted }) => {
     $('remote-mute-indicator').style.display = muted ? 'flex' : 'none';
+  });
+
+  state.socket.on('screen-share-state-change', ({ active }) => {
+    $('remote-screen-indicator').style.display = active ? 'flex' : 'none';
   });
 
   state.socket.connect();
@@ -322,12 +329,20 @@ function endCall() {
     state.localStream = null;
   }
 
+  if (state.screenStream) {
+    state.screenStream.getTracks().forEach((t) => t.stop());
+    state.screenStream = null;
+  }
+  state.savedCameraTrack = null;
+  state.isScreenSharing = false;
+
   $('localVideo').srcObject = null;
   $('remoteVideo').srcObject = null;
   $('local-placeholder').style.display = 'none';
   $('remote-placeholder').style.display = 'none';
 
   $('remote-mute-indicator').style.display = 'none';
+  $('remote-screen-indicator').style.display = 'none';
   $('chat-panel').style.display = 'none';
   $('btn-chat').dataset.active = 'false';
   $('chat-messages').innerHTML = '';
