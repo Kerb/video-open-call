@@ -112,6 +112,11 @@ io.on('connection', (socket) => {
     socket.to(socket.currentRoom).emit('audio-state-change', { muted });
   });
 
+  socket.on('screen-share-state-change', ({ active }) => {
+    if (!socket.currentRoom) return;
+    socket.to(socket.currentRoom).emit('screen-share-state-change', { active });
+  });
+
   socket.on('leave-room', () => {
     leaveRoom(socket);
   });

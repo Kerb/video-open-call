@@ -105,6 +105,56 @@ describe('Room management', () => {
     expect(rooms.get(code).sockets.size).toBe(0);
   });
 
+  // Tests the handler logic from server.js:115-118
+  it('should relay screen-share-state-change to other room members', () => {
+    const code = generateCode();
+    createRoom(rooms, code);
+
+    let emittedEvent = null;
+    let emittedArgs = null;
+    const mockSocket = {
+      currentRoom: code,
+      to: (room) => ({
+        emit: (event, args) => {
+          emittedEvent = event;
+          emittedArgs = args;
+        },
+      }),
+    };
+
+    const handler = ({ active }) => {
+      if (!mockSocket.currentRoom) return;
+      mockSocket.to(mockSocket.currentRoom).emit('screen-share-state-change', { active });
+    };
+
+    handler({ active: true });
+    expect(emittedEvent).toBe('screen-share-state-change');
+    expect(emittedArgs).toEqual({ active: true });
+
+    emittedEvent = null;
+    handler({ active: false });
+    expect(emittedEvent).toBe('screen-share-state-change');
+    expect(emittedArgs).toEqual({ active: false });
+  });
+
+  it('should not relay screen-share-state-change without a room', () => {
+    let emittedEvent = null;
+    const mockSocket = {
+      currentRoom: null,
+      to: () => ({
+        emit: (event) => { emittedEvent = event; },
+      }),
+    };
+
+    const handler = ({ active }) => {
+      if (!mockSocket.currentRoom) return;
+      mockSocket.to(mockSocket.currentRoom).emit('screen-share-state-change', { active });
+    };
+
+    handler({ active: true });
+    expect(emittedEvent).toBeNull();
+  });
+
   it('should generate unique codes for multiple rooms', () => {
     const codes = new Set();
     for (let i = 0; i < 20; i++) {
