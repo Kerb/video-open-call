@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { generateCode, isValidCode } from '../src/code.js';
 
 describe('Room management', () => {
@@ -164,5 +164,141 @@ describe('Room management', () => {
       createRoom(rooms, code);
     }
     expect(rooms.size).toBe(20);
+  });
+
+  describe('Reconnection', () => {
+    let rooms;
+    const RECONNECT_TIMEOUT = 30000;
+
+    beforeEach(() => {
+      rooms = new Map();
+    });
+
+    function createRoom(rooms, code, uuid) {
+      const slot = { uuid, socket: null, isCreator: true, connected: true, reconnectTimer: null };
+      const room = {
+        code,
+        slots: new Map([[uuid, slot]]),
+        socketToUuid: new Map(),
+        createdAt: Date.now(),
+        cleanupTimer: null,
+        graceTimer: null,
+      };
+      room.socketToUuid.set(`socket-${uuid}`, uuid);
+      slot.socket = { id: `socket-${uuid}` };
+      rooms.set(code, room);
+      return room;
+    }
+
+    function joinRoom(rooms, code, uuid) {
+      const room = rooms.get(code);
+      if (!room) return { error: 'room-not-found' };
+      if (room.slots.size >= 2) return { error: 'room-full' };
+      const slot = { uuid, socket: null, isCreator: false, connected: true, reconnectTimer: null };
+      room.slots.set(uuid, slot);
+      room.socketToUuid.set(`socket-${uuid}`, uuid);
+      slot.socket = { id: `socket-${uuid}` };
+      return { success: true, uuid };
+    }
+
+    function handleSocketDisconnect(rooms, code, socketId) {
+      const room = rooms.get(code);
+      if (!room) return;
+      const uuid = [...room.socketToUuid.entries()].find(([sid]) => sid === socketId)?.[1];
+      if (!uuid) return;
+      const slot = room.slots.get(uuid);
+      if (!slot) return;
+
+      slot.socket = null;
+      slot.connected = false;
+      room.socketToUuid.delete(socketId);
+      slot.reconnectTimer = setTimeout(() => {
+        room.slots.delete(uuid);
+      }, RECONNECT_TIMEOUT);
+    }
+
+    function reconnectSlot(rooms, code, uuid, newSocketId) {
+      const room = rooms.get(code);
+      if (!room) return { error: 'room-not-found' };
+      const slot = room.slots.get(uuid);
+      if (!slot) return { error: 'slot-not-found' };
+
+      if (slot.reconnectTimer) {
+        clearTimeout(slot.reconnectTimer);
+        slot.reconnectTimer = null;
+      }
+      slot.socket = { id: newSocketId };
+      slot.connected = true;
+      room.socketToUuid.set(newSocketId, uuid);
+      return { success: true, isCreator: slot.isCreator };
+    }
+
+    it('should mark slot as disconnected and preserve it during reconnect window', () => {
+      const code = 'ABC123';
+      const uuid1 = 'uuid-creator';
+      const uuid2 = 'uuid-joiner';
+      createRoom(rooms, code, uuid1);
+      joinRoom(rooms, code, uuid2);
+
+      expect(rooms.get(code).slots.size).toBe(2);
+
+      handleSocketDisconnect(rooms, code, 'socket-uuid-creator');
+
+      const room = rooms.get(code);
+      expect(room.slots.size).toBe(2);
+      expect(room.slots.get(uuid1).connected).toBe(false);
+      expect(room.slots.get(uuid1).socket).toBeNull();
+      expect(room.slots.get(uuid1).reconnectTimer).not.toBeNull();
+    });
+
+    it('should allow reconnection within the reconnect window', () => {
+      const code = 'ABC123';
+      const uuid1 = 'uuid-creator';
+      const uuid2 = 'uuid-joiner';
+      createRoom(rooms, code, uuid1);
+      joinRoom(rooms, code, uuid2);
+
+      handleSocketDisconnect(rooms, code, 'socket-uuid-creator');
+      const result = reconnectSlot(rooms, code, uuid1, 'new-socket-creator');
+
+      expect(result.success).toBe(true);
+      expect(result.isCreator).toBe(true);
+      const room = rooms.get(code);
+      expect(room.slots.get(uuid1).connected).toBe(true);
+      expect(room.slots.get(uuid1).socket.id).toBe('new-socket-creator');
+      expect(room.slots.get(uuid1).reconnectTimer).toBeNull();
+      expect(room.slots.size).toBe(2);
+    });
+
+    it('should remove slot when reconnect timer expires', () => {
+      vi.useFakeTimers();
+      const code = 'ABC123';
+      const uuid1 = 'uuid-creator';
+      const uuid2 = 'uuid-joiner';
+      createRoom(rooms, code, uuid1);
+      joinRoom(rooms, code, uuid2);
+
+      handleSocketDisconnect(rooms, code, 'socket-uuid-creator');
+
+      expect(rooms.get(code).slots.get(uuid1).reconnectTimer).not.toBeNull();
+
+      vi.advanceTimersByTime(RECONNECT_TIMEOUT);
+
+      expect(rooms.get(code).slots.size).toBe(1);
+      expect(rooms.get(code).slots.has(uuid1)).toBe(false);
+      vi.useRealTimers();
+    });
+
+    it('should reject reconnect to a non-existent room', () => {
+      const result = reconnectSlot(rooms, 'NONEXIST', 'some-uuid', 'socket-id');
+      expect(result.error).toBe('room-not-found');
+    });
+
+    it('should reject reconnect with an unknown uuid', () => {
+      const code = 'ABC123';
+      createRoom(rooms, code, 'uuid-creator');
+      const result = reconnectSlot(rooms, code, 'unknown-uuid', 'socket-id');
+      expect(result.error).toBe('slot-not-found');
+    });
   });
 });
