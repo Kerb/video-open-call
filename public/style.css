@@ -717,6 +717,77 @@ body {
 }
 
 /* ======================== */
+/* RECONNECT OVERLAY        */
+/* ======================== */
+
+#reconnecting-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn 0.3s ease;
+}
+
+.reconnecting-content {
+  text-align: center;
+  color: #e8e8e8;
+}
+
+.reconnecting-content p {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.reconnecting-hint {
+  font-size: 14px;
+  color: #a0a0b0;
+  margin-bottom: 24px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+#peer-reconnecting-indicator {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  color: #e8e8e8;
+  text-align: center;
+  padding: 24px;
+}
+
+#peer-reconnecting-indicator p {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+#peer-reconnecting-indicator .hint {
+  font-size: 13px;
+  color: #a0a0b0;
+}
+
+/* ======================== */
 /* RESPONSIVE — Desktop     */
 /* ======================== */
 
