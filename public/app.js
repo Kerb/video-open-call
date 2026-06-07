@@ -167,6 +167,12 @@ function connectSocket() {
   state.socket.on('user-joined', () => {
     showNotification('Пользователь подключился', 'success');
     transition(STATE.CONNECTING);
+    if (state.socket && state.localStream) {
+      const audioTrack = state.localStream.getAudioTracks()[0];
+      if (audioTrack && !audioTrack.enabled) {
+        state.socket.emit('audio-state-change', { muted: true });
+      }
+    }
     if (state.localStream) {
       startWebRTC(true);
     } else {
@@ -274,8 +280,13 @@ async function getLocalMedia() {
     state.localStream = await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS);
     const video = $('localVideo');
     video.srcObject = state.localStream;
-    $('local-placeholder').style.display = 'none';
-    video.style.display = 'block';
+
+    state.localStream.getAudioTracks().forEach(t => t.enabled = false);
+    state.localStream.getVideoTracks().forEach(t => t.enabled = false);
+    $('btn-mute').dataset.active = 'false';
+    $('btn-camera').dataset.active = 'false';
+    $('local-placeholder').style.display = 'flex';
+    video.style.display = 'none';
     return true;
   } catch (err) {
     console.error('getUserMedia error:', err);
