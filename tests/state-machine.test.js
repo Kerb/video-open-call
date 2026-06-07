@@ -33,6 +33,22 @@ describe('STATE_TRANSITIONS', () => {
   it('should allow JOIN_MODAL to go to WAITING', () => {
     expect(STATE_TRANSITIONS[STATE.JOIN_MODAL]).toContain(STATE.WAITING);
   });
+
+  it('should allow IN_CALL to go to DISCONNECTED', () => {
+    expect(STATE_TRANSITIONS[STATE.IN_CALL]).toContain(STATE.DISCONNECTED);
+  });
+
+  it('should allow DISCONNECTED to go to CONNECTING', () => {
+    expect(STATE_TRANSITIONS[STATE.DISCONNECTED]).toContain(STATE.CONNECTING);
+  });
+
+  it('should allow DISCONNECTED to go to HOME', () => {
+    expect(STATE_TRANSITIONS[STATE.DISCONNECTED]).toContain(STATE.HOME);
+  });
+
+  it('should not allow DISCONNECTED to go to WAITING', () => {
+    expect(STATE_TRANSITIONS[STATE.DISCONNECTED]).not.toContain(STATE.WAITING);
+  });
 });
 
 describe('createStateMachine', () => {
@@ -92,7 +108,7 @@ describe('createStateMachine', () => {
   });
 
   it('should allow hangup from any non-home state', () => {
-    const states = [STATE.WAITING, STATE.CONNECTING, STATE.IN_CALL];
+    const states = [STATE.WAITING, STATE.CONNECTING, STATE.IN_CALL, STATE.DISCONNECTED];
     for (const s of states) {
       const sm = createStateMachine(s);
       expect(sm.transition(STATE.HOME)).toBe(true);
@@ -103,5 +119,27 @@ describe('createStateMachine', () => {
     const sm = createStateMachine(STATE.HOME);
     expect(sm.canTransition(STATE.WAITING)).toBe(true);
     expect(sm.canTransition(STATE.IN_CALL)).toBe(false);
+  });
+
+  it('canTransition should work for DISCONNECTED', () => {
+    const sm = createStateMachine(STATE.DISCONNECTED);
+    expect(sm.canTransition(STATE.CONNECTING)).toBe(true);
+    expect(sm.canTransition(STATE.HOME)).toBe(true);
+    expect(sm.canTransition(STATE.WAITING)).toBe(false);
+  });
+
+  it('should handle DISCONNECTED flow in both directions', () => {
+    const sm = createStateMachine(STATE.IN_CALL);
+    expect(sm.transition(STATE.DISCONNECTED)).toBe(true);
+    expect(sm.getState()).toBe(STATE.DISCONNECTED);
+
+    expect(sm.transition(STATE.CONNECTING)).toBe(true);
+    expect(sm.getState()).toBe(STATE.CONNECTING);
+  });
+
+  it('should allow leaving from DISCONNECTED to HOME', () => {
+    const sm = createStateMachine(STATE.DISCONNECTED);
+    expect(sm.transition(STATE.HOME)).toBe(true);
+    expect(sm.getState()).toBe(STATE.HOME);
   });
 });
