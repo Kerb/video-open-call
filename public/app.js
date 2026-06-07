@@ -765,6 +765,15 @@ function init() {
   $('btn-screen').addEventListener('click', toggleScreenShare);
   $('btn-chat').addEventListener('click', toggleChat);
   $('btn-hangup').addEventListener('click', handleHangup);
+  $('btn-leave-reconnect').addEventListener('click', () => {
+    if (state.isReconnecting) {
+      state.isReconnecting = false;
+      hideReconnectingOverlay();
+    }
+    state.waitingForPeerReconnect = false;
+    hidePeerWaitingOverlay();
+    handleHangup();
+  });
   $('copy-link').addEventListener('click', (e) => {
     e.preventDefault();
     copyRoomCode();
