@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateCode, isValidCode, CODE_ALPHABET, CODE_LENGTH } from '../src/code.js';
+import { generateCode, isValidCode, sanitizeCodeInput, getRawInput, CODE_ALPHABET, CODE_LENGTH } from '../src/code.js';
 
 describe('generateCode', () => {
   it('should return a string of correct length', () => {
@@ -67,5 +67,58 @@ describe('isValidCode', () => {
 
   it('should reject lowercase', () => {
     expect(isValidCode('abc234')).toBe(false);
+  });
+});
+
+describe('sanitizeCodeInput', () => {
+  it('should convert to uppercase', () => {
+    expect(sanitizeCodeInput('abc234')).toBe('ABC234');
+  });
+
+  it('should strip characters outside A-Z and 0-9', () => {
+    expect(sanitizeCodeInput('AB$C@12!')).toBe('ABC12');
+  });
+
+  it('should truncate to CODE_LENGTH (6)', () => {
+    expect(sanitizeCodeInput('ABCDEFGH')).toBe('ABCDEF');
+  });
+
+  it('should return empty string for empty input', () => {
+    expect(sanitizeCodeInput('')).toBe('');
+  });
+
+  it('should return empty string for null/undefined', () => {
+    expect(sanitizeCodeInput(null)).toBe('');
+    expect(sanitizeCodeInput(undefined)).toBe('');
+  });
+
+  it('should keep valid characters', () => {
+    expect(sanitizeCodeInput('ABC234')).toBe('ABC234');
+  });
+});
+
+describe('getRawInput', () => {
+  it('should strip spaces', () => {
+    expect(getRawInput('ABC 234')).toBe('ABC234');
+  });
+
+  it('should strip dashes', () => {
+    expect(getRawInput('ABC-234')).toBe('ABC234');
+  });
+
+  it('should strip dots', () => {
+    expect(getRawInput('AB.C2.34')).toBe('ABC234');
+  });
+
+  it('should strip mixed separators', () => {
+    expect(getRawInput('A-B C.2 34')).toBe('ABC234');
+  });
+
+  it('should handle already clean input', () => {
+    expect(getRawInput('XYZ789')).toBe('XYZ789');
+  });
+
+  it('should return empty for all-separator input', () => {
+    expect(getRawInput('- - . -')).toBe('');
   });
 });

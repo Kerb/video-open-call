@@ -21,4 +21,15 @@ function isValidCode(code) {
   return true;
 }
 
-module.exports = { generateCode, isValidCode, CODE_ALPHABET, CODE_LENGTH };
+function sanitizeCodeInput(value) {
+  if (!value) return '';
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+}
+
+function getRawInput(value) {
+  if (!value) return '';
+  const cleaned = value.replace(/[\s\-.,/]+/g, '');
+  return sanitizeCodeInput(cleaned);
+}
+
+module.exports = { generateCode, isValidCode, sanitizeCodeInput, getRawInput, CODE_ALPHABET, CODE_LENGTH };
