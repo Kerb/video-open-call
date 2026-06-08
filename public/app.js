@@ -1,4 +1,4 @@
-const { STATE, STATE_TRANSITIONS } = require('../src/shared-state');
+const { STATE, STATE_TRANSITIONS } = window;
 
 const state = {
   appState: STATE.HOME,
