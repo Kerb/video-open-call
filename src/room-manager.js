@@ -140,8 +140,13 @@ class RoomManager {
     room.socketToUuid.delete(socket.id);
     socket.currentRoom = null;
 
-    const slotValues = [...room.slots.values()];
-    const otherSlot = slotValues.find((s) => s.uuid !== uuid);
+    let otherSlot;
+    for (const s of room.slots.values()) {
+      if (s.uuid !== uuid) {
+        otherSlot = s;
+        break;
+      }
+    }
     if (otherSlot && otherSlot.socket) {
       otherSlot.socket.emit('peer-disconnected', { canReconnect: true });
     }
@@ -149,7 +154,12 @@ class RoomManager {
     if (slot.reconnectTimer) clearTimeout(slot.reconnectTimer);
     slot.reconnectTimer = setTimeout(() => {
       room.slots.delete(uuid);
-      const otherSlot = slotValues.find((s) => s.uuid !== uuid);
+      for (const s of room.slots.values()) {
+        if (s.uuid !== uuid) {
+          otherSlot = s;
+          break;
+        }
+      }
       if (otherSlot && otherSlot.socket) {
         otherSlot.socket.emit('peer-disconnected', { canReconnect: false });
       }
