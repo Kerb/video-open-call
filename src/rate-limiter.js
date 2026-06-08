@@ -1,7 +1,16 @@
 class RateLimiter {
   constructor(options = {}) {
-    this.maxRequests = options.maxRequests || 100;
-    this.windowMs = options.windowMs || 60000;
+    this.maxRequests = options.maxRequests !== undefined ? options.maxRequests : 100;
+    this.windowMs = options.windowMs !== undefined ? options.windowMs : 60000;
+
+    if (typeof this.maxRequests !== 'number' || !Number.isFinite(this.maxRequests) || this.maxRequests < 1) {
+      throw new Error('maxRequests must be a positive number (>= 1)');
+    }
+
+    if (typeof this.windowMs !== 'number' || !Number.isFinite(this.windowMs) || this.windowMs < 1) {
+      throw new Error('windowMs must be a positive number (>= 1)');
+    }
+
     this.requests = new Map();
     this.cleanupInterval = setInterval(() => this.cleanup(), this.windowMs);
   }

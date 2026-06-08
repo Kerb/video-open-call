@@ -70,4 +70,54 @@ describe('RateLimiter', () => {
       resetTime: expect.any(Number)
     });
   });
+
+  describe('input validation', () => {
+    it('should throw error for negative maxRequests', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: -1, windowMs: 60000 });
+      }).toThrow('maxRequests must be a positive number (>= 1)');
+    });
+
+    it('should throw error for zero maxRequests', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 0, windowMs: 60000 });
+      }).toThrow('maxRequests must be a positive number (>= 1)');
+    });
+
+    it('should throw error for non-number maxRequests', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 'not a number', windowMs: 60000 });
+      }).toThrow('maxRequests must be a positive number (>= 1)');
+    });
+
+    it('should throw error for NaN maxRequests', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: NaN, windowMs: 60000 });
+      }).toThrow('maxRequests must be a positive number (>= 1)');
+    });
+
+    it('should throw error for negative windowMs', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 100, windowMs: -1 });
+      }).toThrow('windowMs must be a positive number (>= 1)');
+    });
+
+    it('should throw error for zero windowMs', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 100, windowMs: 0 });
+      }).toThrow('windowMs must be a positive number (>= 1)');
+    });
+
+    it('should throw error for non-number windowMs', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 100, windowMs: 'not a number' });
+      }).toThrow('windowMs must be a positive number (>= 1)');
+    });
+
+    it('should throw error for NaN windowMs', () => {
+      expect(() => {
+        new RateLimiter({ maxRequests: 100, windowMs: NaN });
+      }).toThrow('windowMs must be a positive number (>= 1)');
+    });
+  });
 });
