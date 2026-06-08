@@ -175,30 +175,30 @@ function stopServer() {
 
 if (require.main === module) {
   startServer();
+
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully...');
+    stopServer();
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully...');
+    stopServer();
+    process.exit(0);
+  });
+
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    stopServer();
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    stopServer();
+    process.exit(1);
+  });
 }
 
 module.exports = { setupSocketHandlers, startServer, stopServer };
-
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
-  stopServer();
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received, shutting down gracefully...');
-  stopServer();
-  process.exit(0);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  stopServer();
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  stopServer();
-  process.exit(1);
-});
