@@ -201,8 +201,12 @@ class RoomManager {
     const room = this.rooms.get(code.toUpperCase());
     if (!room) return null;
     
-    const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
-    return otherSlot && otherSlot.socket ? otherSlot.socket : null;
+    for (const slot of room.slots.values()) {
+      if (slot.uuid !== uuid) {
+        return slot.socket || null;
+      }
+    }
+    return null;
   }
 
   cleanUpRoom(code) {
