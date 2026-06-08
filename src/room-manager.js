@@ -79,13 +79,13 @@ class RoomManager {
 
   leaveRoom(socket) {
     const code = socket.currentRoom;
-    if (!code) return { success: false };
+    if (!code) return { success: false, error: 'no-current-room' };
 
     const room = this.rooms.get(code);
-    if (!room) return { success: false };
+    if (!room) return { success: false, error: 'room-not-found' };
 
     const uuid = room.socketToUuid.get(socket.id);
-    if (!uuid) return { success: false };
+    if (!uuid) return { success: false, error: 'slot-not-found' };
 
     const slot = room.slots.get(uuid);
     if (slot && slot.reconnectTimer) {
@@ -110,29 +110,29 @@ class RoomManager {
 
   handleDisconnect(socket) {
     const code = socket.currentRoom;
-    if (!code) return { success: false };
+    if (!code) return { success: false, error: 'no-current-room' };
 
     const room = this.rooms.get(code);
     if (!room) {
       socket.currentRoom = null;
-      return { success: false };
+      return { success: false, error: 'room-not-found' };
     }
 
     const uuid = room.socketToUuid.get(socket.id);
     if (!uuid) {
       socket.currentRoom = null;
-      return { success: false };
+      return { success: false, error: 'slot-not-found' };
     }
 
     const slot = room.slots.get(uuid);
     if (!slot) {
       socket.currentRoom = null;
-      return { success: false };
+      return { success: false, error: 'slot-not-found' };
     }
 
     if (slot.socket && slot.socket.id !== socket.id) {
       socket.currentRoom = null;
-      return { success: false };
+      return { success: false, error: 'socket-mismatch' };
     }
 
     slot.socket = null;
@@ -140,7 +140,8 @@ class RoomManager {
     room.socketToUuid.delete(socket.id);
     socket.currentRoom = null;
 
-    const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
+    const slotValues = [...room.slots.values()];
+    const otherSlot = slotValues.find((s) => s.uuid !== uuid);
     if (otherSlot && otherSlot.socket) {
       otherSlot.socket.emit('peer-disconnected', { canReconnect: true });
     }
@@ -148,7 +149,7 @@ class RoomManager {
     if (slot.reconnectTimer) clearTimeout(slot.reconnectTimer);
     slot.reconnectTimer = setTimeout(() => {
       room.slots.delete(uuid);
-      const otherSlot = [...room.slots.values()].find((s) => s.uuid !== uuid);
+      const otherSlot = slotValues.find((s) => s.uuid !== uuid);
       if (otherSlot && otherSlot.socket) {
         otherSlot.socket.emit('peer-disconnected', { canReconnect: false });
       }
