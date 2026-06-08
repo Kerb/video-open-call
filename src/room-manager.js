@@ -9,6 +9,12 @@ class RoomManager {
     this.rooms = new Map();
   }
 
+  /**
+   * Creates a new room with the specified user as creator.
+   * @param {string} uuid - Valid UUID v4 of the user
+   * @param {Object} socket - Socket.IO socket instance
+   * @returns {{success: boolean, code?: string, error?: string}} Room creation result
+   */
   createRoom(uuid, socket) {
     if (socket.currentRoom) {
       return { success: false, error: 'already-in-room' };
@@ -42,6 +48,13 @@ class RoomManager {
     return { success: true, code };
   }
 
+  /**
+   * Joins an existing room.
+   * @param {string} code - 6-character room code
+   * @param {string} uuid - Valid UUID v4 of the user
+   * @param {Object} socket - Socket.IO socket instance
+   * @returns {{success: boolean, code?: string, error?: string}} Join result
+   */
   joinRoom(code, uuid, socket) {
     if (socket.currentRoom) {
       return { success: false, error: 'already-in-room' };

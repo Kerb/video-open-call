@@ -180,6 +180,33 @@ railway up
 
 ---
 
+## Security Considerations
+
+- UUIDs are validated on server to prevent injection attacks
+- Rate limiting prevents abuse of room creation/joining
+- Room codes use unambiguous character set (no I, 1, O, 0)
+- Messages are sanitized and length-limited
+- Graceful shutdown prevents resource leaks
+
+## Development
+
+Run tests:
+```bash
+npm test
+```
+
+Run in development:
+```bash
+npm run dev
+```
+
+Build for production:
+```bash
+npm start
+```
+
+---
+
 ##Лицензия
 
 MIT
