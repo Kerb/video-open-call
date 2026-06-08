@@ -165,20 +165,34 @@ function connectSocket() {
   });
 
   state.socket.on('offer', ({ sdp }) => {
-    transition(STATE.CONNECTING);
-    if (state.localStream) {
-      handleOffer(sdp);
-    } else {
-      state.pendingOffer = sdp;
+    try {
+      transition(STATE.CONNECTING);
+      if (state.localStream) {
+        handleOffer(sdp);
+      } else {
+        state.pendingOffer = sdp;
+      }
+    } catch (err) {
+      console.error('Error handling offer:', err);
+      showNotification('Ошибка обработки входящего звонка', 'error');
     }
   });
 
   state.socket.on('answer', ({ sdp }) => {
-    handleAnswer(sdp);
+    try {
+      handleAnswer(sdp);
+    } catch (err) {
+      console.error('Error handling answer:', err);
+      showNotification('Ошибка обработки ответа', 'error');
+    }
   });
 
   state.socket.on('ice-candidate', ({ candidate }) => {
-    handleIceCandidate(candidate);
+    try {
+      handleIceCandidate(candidate);
+    } catch (err) {
+      console.error('Error handling ICE candidate:', err);
+    }
   });
 
   state.socket.on('peer-disconnected', ({ canReconnect }) => {
@@ -361,30 +375,63 @@ async function startWebRTC(asCreator) {
 }
 
 async function handleOffer(sdp) {
+  if (!sdp || !sdp.type || !sdp.sdp) {
+    console.error('Invalid SDP received');
+    showNotification('Неверный формат данных соединения', 'error');
+    return;
+  }
+
   const pc = createPeerConnection();
 
   try {
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
-    state.socket.emit('answer', { sdp: pc.localDescription });
+    
+    if (state.socket && state.roomCode) {
+      state.socket.emit('answer', { sdp: pc.localDescription });
+    } else {
+      console.error('Socket or room code not available');
+      showNotification('Ошибка отправки ответа', 'error');
+    }
   } catch (err) {
     console.error('handleOffer error:', err);
-    showNotification('Ошибка обработки предложения', 'error');
+    showNotification('Ошибка обработки предложения соединения', 'error');
+    closePeerConnection();
   }
 }
 
 async function handleAnswer(sdp) {
-  if (!state.peerConnection) return;
+  if (!state.peerConnection) {
+    console.error('No peer connection available');
+    return;
+  }
+
+  if (!sdp || !sdp.type || !sdp.sdp) {
+    console.error('Invalid SDP received');
+    showNotification('Неверный формат данных соединения', 'error');
+    return;
+  }
+
   try {
     await state.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
   } catch (err) {
     console.error('handleAnswer error:', err);
+    showNotification('Ошибка установки соединения', 'error');
   }
 }
 
 async function handleIceCandidate(candidate) {
-  if (!state.peerConnection) return;
+  if (!state.peerConnection) {
+    console.error('No peer connection available');
+    return;
+  }
+
+  if (!candidate) {
+    console.warn('Received null ICE candidate');
+    return;
+  }
+
   try {
     await state.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (err) {
