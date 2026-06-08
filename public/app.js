@@ -463,6 +463,7 @@ function addLocalTracksToPC() {
 }
 
 function enterRoom(code) {
+  closeModal();
   state.roomCode = code;
   $('room-code').textContent = code;
   screens.room();
