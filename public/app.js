@@ -115,6 +115,7 @@ function connectSocket() {
 
   state.socket.on('disconnect', () => {
     console.log('Socket disconnected');
+    clearTimeout(state.pcFailTimer);
     if (state.roomCode && [STATE.IN_CALL, STATE.CONNECTING, STATE.WAITING, STATE.DISCONNECTED].includes(state.appState)) {
       state.isReconnecting = true;
       transition(STATE.DISCONNECTED);
@@ -211,6 +212,7 @@ function connectSocket() {
   });
 
   state.socket.on('peer-disconnected', ({ canReconnect }) => {
+    clearTimeout(state.pcFailTimer);
     if (canReconnect) {
       state.waitingForPeerReconnect = true;
       transition(STATE.DISCONNECTED);
@@ -356,9 +358,13 @@ function createPeerConnection() {
     }
     if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
       if (state.isReconnecting || state.waitingForPeerReconnect) return;
-      showNotification('Соединение потеряно', 'error');
-      endCall();
-      screens.home();
+      clearTimeout(state.pcFailTimer);
+      state.pcFailTimer = setTimeout(() => {
+        if (state.isReconnecting || state.waitingForPeerReconnect) return;
+        showNotification('Соединение потеряно', 'error');
+        endCall();
+        screens.home();
+      }, 5000);
     }
   };
 
@@ -519,6 +525,7 @@ function updateReconnectStatus(text) {
 }
 
 function endCall() {
+  clearTimeout(state.pcFailTimer);
   clearTimeout(retryState.timer);
   retryState.attempt = 0;
 
