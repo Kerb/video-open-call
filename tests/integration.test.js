@@ -98,9 +98,11 @@ describe('Integration Tests', () => {
           clientSocket2.emit('reconnect-room', { code: roomCode, uuid: uuid2 });
         });
         
-        clientSocket2.on('reconnect-success', ({ code, isCreator }) => {
+        clientSocket2.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
           expect(code).toBe(roomCode);
           expect(isCreator).toBe(false);
+          expect(typeof reconnectWindow).toBe('number');
+          expect(reconnectWindow).toBeGreaterThan(0);
           done();
         });
       }, 100);
