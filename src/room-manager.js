@@ -243,6 +243,18 @@ class RoomManager {
     return null;
   }
 
+  getPeerUuid(code, uuid) {
+    const room = this.rooms.get(code.toUpperCase());
+    if (!room) return null;
+    
+    for (const slot of room.slots.values()) {
+      if (slot.uuid !== uuid) {
+        return slot.uuid;
+      }
+    }
+    return null;
+  }
+
   cleanUpRoom(code) {
     if (this.rooms.has(code)) {
       const room = this.rooms.get(code);

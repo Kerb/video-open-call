@@ -60,6 +60,26 @@ describe('RoomManager', () => {
     expect(result.error).toBe('room-not-found');
   });
 
+  it('should return peer UUID when room has two participants', () => {
+    const uuid1 = 'aaa';
+    const uuid2 = 'bbb';
+    const socket1 = { id: 'socket-1', emit: vi.fn(), join: vi.fn() };
+    const socket2 = { id: 'socket-2', emit: vi.fn(), join: vi.fn() };
+    const { code } = roomManager.createRoom(uuid1, socket1);
+    roomManager.joinRoom(code, uuid2, socket2);
+
+    expect(roomManager.getPeerUuid(code, uuid1)).toBe(uuid2);
+    expect(roomManager.getPeerUuid(code, uuid2)).toBe(uuid1);
+  });
+
+  it('should return null when room has no peer', () => {
+    const uuid1 = 'aaa';
+    const socket1 = { id: 'socket-1', emit: vi.fn(), join: vi.fn() };
+    const { code } = roomManager.createRoom(uuid1, socket1);
+
+    expect(roomManager.getPeerUuid(code, uuid1)).toBeNull();
+  });
+
   it('should reject joining full room', () => {
     const uuid1 = 'user-1';
     const uuid2 = 'user-2';
