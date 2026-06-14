@@ -158,7 +158,7 @@ Peer's screen sharing state changed.
 
 1. **Created**: Room exists, waiting for second participant
 2. **Full**: 2 participants connected
-3. **Grace Period**: All participants left, room kept for 5 minutes
+3. **Grace Period**: All participants left, room kept for 15 minutes
 4. **Cleanup**: Room deleted after grace period
 
 ## Reconnection

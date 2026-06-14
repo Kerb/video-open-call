@@ -1,5 +1,6 @@
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
+const CODE_STRIP_RE = /[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g;
 
 function generateCode(existingCodes) {
   let code;
@@ -23,7 +24,7 @@ function isValidCode(code) {
 
 function sanitizeCodeInput(value) {
   if (!value) return '';
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, CODE_LENGTH);
+  return value.toUpperCase().replace(CODE_STRIP_RE, '').slice(0, CODE_LENGTH);
 }
 
 module.exports = { generateCode, isValidCode, sanitizeCodeInput, CODE_ALPHABET, CODE_LENGTH };

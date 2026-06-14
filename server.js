@@ -45,7 +45,7 @@ function setupSocketHandlers(io) {
       }
 
       socket.join(result.code);
-      socket.emit('room-created', { code: result.code });
+      socket.emit('room-created', { code: result.code, expiresAt: Date.now() + 30 * 60 * 1000 });
     });
 
     socket.on('join-room', ({ code, uuid }) => {

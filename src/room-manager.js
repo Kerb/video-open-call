@@ -1,7 +1,7 @@
 const { generateCode } = require('./code');
 
 const EMPTY_ROOM_TIMEOUT = 30 * 60 * 1000;
-const GRACE_PERIOD = 5 * 60 * 1000;
+const GRACE_PERIOD = 15 * 60 * 1000;
 const RECONNECT_TIMEOUT = 30000;
 
 class RoomManager {

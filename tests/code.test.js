@@ -75,8 +75,8 @@ describe('sanitizeCodeInput', () => {
     expect(sanitizeCodeInput('abc234')).toBe('ABC234');
   });
 
-  it('should strip characters outside A-Z and 0-9', () => {
-    expect(sanitizeCodeInput('AB$C@12!')).toBe('ABC12');
+  it('should strip characters outside the valid alphabet', () => {
+    expect(sanitizeCodeInput('AB$C@1!')).toBe('ABC');
   });
 
   it('should truncate to CODE_LENGTH (6)', () => {
@@ -94,6 +94,10 @@ describe('sanitizeCodeInput', () => {
 
   it('should keep valid characters', () => {
     expect(sanitizeCodeInput('ABC234')).toBe('ABC234');
+  });
+
+  it('should strip ambiguous characters (0, O, 1, I)', () => {
+    expect(sanitizeCodeInput('ABC0O1I')).toBe('ABC');
   });
 });
 

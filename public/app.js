@@ -115,6 +115,10 @@ function connectSocket() {
 
   state.socket.on('connect', () => {
     console.log('Socket connected');
+    /* Attempt reconnection on page reload if we have saved room state */
+    if (state.roomCode && state.uuid && state.isReconnecting) {
+      state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+    }
   });
 
   state.socket.on('disconnect', () => {
@@ -148,9 +152,16 @@ function connectSocket() {
     hideReconnectingOverlay();
     hideNotification();
     transition(STATE.CONNECTING);
+    clearSavedRoomState();
 
     state.peerUuid = peerUuid;
-    if (shouldCreateOffer(state.uuid, state.peerUuid)) {
+    const isPageReload = !state.localStream;
+    if (isPageReload) {
+      if (state.peerUuid) {
+        state.pendingStartWebRTC = true;
+      }
+      enterRoom(code);
+    } else if (shouldCreateOffer(state.uuid, state.peerUuid)) {
       restartIce();
     } else {
       closePeerConnection();
@@ -581,6 +592,7 @@ function endCall() {
   state.waitingForPeerReconnect = false;
   hideReconnectingOverlay();
   hidePeerWaitingOverlay();
+  clearSavedRoomState();
 }
 
 function addLocalTracksToPC() {
@@ -593,9 +605,23 @@ function addLocalTracksToPC() {
   });
 }
 
+function saveRoomState() {
+  if (state.roomCode) {
+    sessionStorage.setItem('room-state', JSON.stringify({
+      code: state.roomCode,
+      peerUuid: state.peerUuid,
+    }));
+  }
+}
+
+function clearSavedRoomState() {
+  sessionStorage.removeItem('room-state');
+}
+
 function enterRoom(code) {
   closeModal();
   state.roomCode = code;
+  saveRoomState();
   $('room-code').textContent = code;
   screens.room();
 
@@ -870,6 +896,21 @@ function sendChatMessage() {
 function init() {
   connectSocket();
 
+  /* Restore room state after page reload */
+  const savedRoom = sessionStorage.getItem('room-state');
+  if (savedRoom) {
+    try {
+      const { code } = JSON.parse(savedRoom);
+      state.roomCode = code;
+      state.isReconnecting = true;
+      transition(STATE.DISCONNECTED);
+      showReconnectingOverlay();
+      updateReconnectStatus('Восстановление предыдущей сессии...');
+    } catch (e) {
+      sessionStorage.removeItem('room-state');
+    }
+  }
+
   /* Home screen */
   $('btn-create').addEventListener('click', () => {
     if (state.appState !== STATE.HOME) return;
@@ -890,7 +931,7 @@ function init() {
 
   const codeInput = $('code-input');
   codeInput.addEventListener('input', (e) => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    e.target.value = e.target.value.toUpperCase().replace(/[^ABCDEFGHJKLMNPQRSTUVWXYZ23456789]/g, '').slice(0, 6);
   });
 
   codeInput.addEventListener('focus', (e) => {
@@ -964,12 +1005,17 @@ function init() {
 
   loadVersion();
 
-  /* Tab close */
+  /* Tab close — preserve slot for reconnection, just stop media */
   window.addEventListener('beforeunload', () => {
-    if (state.socket && state.roomCode) {
-      state.socket.emit('leave-room');
+    if (state.peerConnection) {
+      state.peerConnection.close();
     }
-    endCall();
+    if (state.localStream) {
+      state.localStream.getTracks().forEach((track) => track.stop());
+    }
+    if (state.screenStream) {
+      state.screenStream.getTracks().forEach((t) => t.stop());
+    }
   });
 }
 
