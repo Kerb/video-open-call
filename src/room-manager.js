@@ -27,6 +27,7 @@ class RoomManager {
       isCreator: true,
       connected: true,
       reconnectTimer: null,
+      disconnectedAt: null,
     };
     const room = {
       code,
@@ -82,6 +83,7 @@ class RoomManager {
       isCreator: false,
       connected: true,
       reconnectTimer: null,
+      disconnectedAt: null,
     };
     room.slots.set(uuid, slot);
     room.socketToUuid.set(socket.id, uuid);
@@ -150,6 +152,7 @@ class RoomManager {
 
     slot.socket = null;
     slot.connected = false;
+    slot.disconnectedAt = Date.now();
     room.socketToUuid.delete(socket.id);
     socket.currentRoom = null;
 
@@ -213,7 +216,15 @@ class RoomManager {
     room.socketToUuid.set(socket.id, uuid);
     socket.currentRoom = code.toUpperCase();
 
-    return { success: true, code: code.toUpperCase(), isCreator: slot.isCreator };
+    const elapsed = Date.now() - (slot.disconnectedAt || Date.now());
+    const reconnectWindow = Math.max(0, RECONNECT_TIMEOUT - elapsed);
+
+    return {
+      success: true,
+      code: code.toUpperCase(),
+      isCreator: slot.isCreator,
+      reconnectWindow,
+    };
   }
 
   getRoom(code) {
