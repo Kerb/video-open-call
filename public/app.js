@@ -908,20 +908,23 @@ function init() {
     updateReconnectStatus('Повторная попытка...');
 
     if (!state.socket.connected) {
+      if (state._retryConnectHandler) {
+        state.socket.off('connect', state._retryConnectHandler);
+      }
+      state._retryConnectHandler = () => {
+        if (state.roomCode && state.uuid) {
+          state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+        }
+      };
+      state.socket.once('connect', state._retryConnectHandler);
       state.socket.connect();
-    }
-
-    const tryNow = () => {
+    } else {
       if (state.roomCode && state.uuid) {
         state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
       }
-    };
-
-    if (state.socket.connected) {
-      tryNow();
-    } else {
-      state.socket.once('connect', tryNow);
     }
+
+    scheduleRetry();
   });
 
   $('btn-leave-peer-reconnect').addEventListener('click', () => {
