@@ -77,11 +77,11 @@ function setupSocketHandlers(io) {
       }
 
       socket.join(result.code);
-      socket.emit('room-joined', { code: result.code });
+      socket.emit('room-joined', { code: result.code, peerUuid: roomManager.getPeerUuid(result.code, sanitizedUUID) });
       
       const otherSocket = roomManager.getOtherSocket(result.code, sanitizedUUID);
       if (otherSocket) {
-        otherSocket.emit('user-joined', { userId: socket.id });
+        otherSocket.emit('user-joined', { uuid: sanitizedUUID, userId: socket.id });
       }
     });
 
@@ -151,7 +151,7 @@ function setupSocketHandlers(io) {
       socket.join(result.code);
       socket.emit('reconnect-success', {
         code: result.code,
-        isCreator: result.isCreator,
+        peerUuid: result.peerUuid,
         reconnectWindow: result.reconnectWindow,
       });
 

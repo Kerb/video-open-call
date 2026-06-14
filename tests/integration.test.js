@@ -63,8 +63,9 @@ describe('Integration Tests', () => {
       clientSocket2.emit('join-room', { code, uuid: uuid2 });
     });
 
-    clientSocket2.on('room-joined', ({ code }) => {
+    clientSocket2.on('room-joined', ({ code, peerUuid }) => {
       expect(code).toBe(roomCode);
+      expect(peerUuid).toBe(uuid1);
       clientSocket1.emit('leave-room');
     });
 
@@ -98,9 +99,9 @@ describe('Integration Tests', () => {
           clientSocket2.emit('reconnect-room', { code: roomCode, uuid: uuid2 });
         });
         
-        clientSocket2.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
+        clientSocket2.on('reconnect-success', ({ code, peerUuid, reconnectWindow }) => {
           expect(code).toBe(roomCode);
-          expect(isCreator).toBe(false);
+          expect(peerUuid).toBe(uuid1);
           expect(typeof reconnectWindow).toBe('number');
           expect(reconnectWindow).toBeGreaterThan(0);
           done();
@@ -122,7 +123,8 @@ describe('Integration Tests', () => {
       clientSocket2.emit('join-room', { code, uuid: uuid2 });
     });
 
-    clientSocket2.on('user-joined', () => {
+    clientSocket2.on('user-joined', ({ uuid }) => {
+      expect(uuid).toBe(uuid2);
       clientSocket1.emit('send-message', { text: testMessage });
     });
 
@@ -225,17 +227,17 @@ describe('Integration Tests', () => {
         clientSocket1.emit('reconnect-room', { code: roomCode, uuid: uuid1 });
         clientSocket2.emit('reconnect-room', { code: roomCode, uuid: uuid2 });
 
-        clientSocket1.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
+        clientSocket1.on('reconnect-success', ({ code, peerUuid, reconnectWindow }) => {
           expect(code).toBe(roomCode);
-          expect(isCreator).toBe(true);
+          expect(peerUuid).toBe(uuid2);
           expect(reconnectWindow).toBeGreaterThan(0);
           socket1Reconnected = true;
           checkBothReconnected();
         });
 
-        clientSocket2.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
+        clientSocket2.on('reconnect-success', ({ code, peerUuid, reconnectWindow }) => {
           expect(code).toBe(roomCode);
-          expect(isCreator).toBe(false);
+          expect(peerUuid).toBe(uuid1);
           expect(reconnectWindow).toBeGreaterThan(0);
           socket2Reconnected = true;
           checkBothReconnected();
