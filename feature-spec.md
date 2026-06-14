@@ -266,7 +266,8 @@
 | Событие (сервер → клиент) | Действие |
 |--------------------------|----------|
 | `room-created {code}` | Комната создана, получен код |
-| `user-joined {userId}` | Второй участник подключился |
+| `room-joined { code, peerUuid }` | Подключение к комнате выполнено |
+| `user-joined { uuid, userId }` | Второй участник подключился |
 | `offer {sdp}` | Получен offer |
 | `answer {sdp}` | Получен answer |
 | `ice-candidate {candidate}` | Получен ICE candidate |
@@ -277,7 +278,7 @@
 | `peer-disconnected { canReconnect }` | Второй участник отключился (canReconnect — можно переподключиться) |
 | `room-not-found` | Комната с таким кодом не существует |
 | `room-full` | В комнате уже 2 участника |
-| `reconnect-success { code, isCreator }` | Переподключение выполнено успешно |
+| `reconnect-success { code, peerUuid, reconnectWindow }` | Переподключение выполнено успешно |
 | `peer-reconnected { uuid }` | Собеседник переподключился |
 
 **Хранение комнат:** In-memory Map (только оперативная память, никаких внешних БД)
@@ -286,7 +287,6 @@
 interface Slot {
   uuid: string;
   socket: Socket | null;
-  isCreator: boolean;
   connected: boolean;
   reconnectTimer: Timer | null;
 }

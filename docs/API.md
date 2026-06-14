@@ -38,7 +38,7 @@ Joins an existing room.
 - `uuid`: Valid UUID v4 string
 
 **Responses:**
-- `room-joined`: `{ code: string }` - Successfully joined
+- `room-joined`: `{ code: string, peerUuid: string }` - Successfully joined
 - `room-not-found` - Room does not exist
 - `room-full` - Room has 2 participants
 - `room-error`: `{ message: string }` - Other errors
@@ -68,7 +68,7 @@ Reconnects to a room after disconnect.
 - `uuid`: User's UUID
 
 **Responses:**
-- `reconnect-success`: `{ code: string, isCreator: boolean }` - Successfully reconnected
+- `reconnect-success`: `{ code: string, peerUuid: string|null, reconnectWindow: number }` - Successfully reconnected
 - `room-not-found` - Room no longer exists
 - `room-error`: `{ message: string }` - Reconnection failed
 
@@ -115,7 +115,7 @@ Broadcasts screen sharing state to peer.
 
 **user-joined**
 ```javascript
-socket.on('user-joined', { userId: string })
+socket.on('user-joined', { uuid: string, userId: string })
 ```
 Another user joined the room.
 
