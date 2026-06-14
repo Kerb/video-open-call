@@ -24,7 +24,6 @@ class RoomManager {
     const slot = {
       uuid,
       socket,
-      isCreator: true,
       connected: true,
       reconnectTimer: null,
       disconnectedAt: null,
@@ -80,7 +79,6 @@ class RoomManager {
     const slot = {
       uuid,
       socket,
-      isCreator: false,
       connected: true,
       reconnectTimer: null,
       disconnectedAt: null,
@@ -219,10 +217,18 @@ class RoomManager {
     const elapsed = Date.now() - (slot.disconnectedAt || Date.now());
     const reconnectWindow = Math.max(0, RECONNECT_TIMEOUT - elapsed);
 
+    let peerUuid = null;
+    for (const s of room.slots.values()) {
+      if (s.uuid !== uuid) {
+        peerUuid = s.uuid;
+        break;
+      }
+    }
+
     return {
       success: true,
       code: code.toUpperCase(),
-      isCreator: slot.isCreator,
+      peerUuid,
       reconnectWindow,
     };
   }

@@ -149,7 +149,7 @@ describe('Room management', () => {
     expect(result.reconnectWindow).toBeLessThan(30000);
   });
 
-  it('should return isCreator flag on reconnect', () => {
+  it('should return peerUuid on reconnect', () => {
     const socket1 = createMockSocket('socket-1');
     const socket2 = createMockSocket('socket-2');
     const { code } = roomManager.createRoom('uuid-1', socket1);
@@ -157,11 +157,11 @@ describe('Room management', () => {
     
     roomManager.handleDisconnect(socket1);
     const result1 = roomManager.reconnectToRoom(code, 'uuid-1', createMockSocket('socket-new-1'));
-    expect(result1.isCreator).toBe(true);
+    expect(result1.peerUuid).toBe('uuid-2');
     
     roomManager.handleDisconnect(socket2);
     const result2 = roomManager.reconnectToRoom(code, 'uuid-2', createMockSocket('socket-new-2'));
-    expect(result2.isCreator).toBe(false);
+    expect(result2.peerUuid).toBe('uuid-1');
   });
 
   it('should send peer-disconnected with canReconnect true on disconnect', () => {
@@ -247,11 +247,11 @@ describe('Room management', () => {
     
     const result1 = roomManager.reconnectToRoom(code, 'uuid-1', createMockSocket('socket-new-1'));
     expect(result1.success).toBe(true);
-    expect(result1.isCreator).toBe(true);
+    expect(result1.peerUuid).toBe('uuid-2');
     
     const result2 = roomManager.reconnectToRoom(code, 'uuid-2', createMockSocket('socket-new-2'));
     expect(result2.success).toBe(true);
-    expect(result2.isCreator).toBe(false);
+    expect(result2.peerUuid).toBe('uuid-1');
     
     const room = roomManager.getRoom(code);
     expect(room.slots.get('uuid-1').connected).toBe(true);
