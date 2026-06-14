@@ -55,6 +55,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 24px;
+  position: relative;
 }
 
 .home-content {
@@ -93,6 +94,18 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.app-footer {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+  pointer-events: none;
 }
 
 /* ======================== */

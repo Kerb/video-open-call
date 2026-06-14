@@ -951,6 +951,8 @@ function init() {
     if (e.key === 'Enter') sendChatMessage();
   });
 
+  loadVersion();
+
   /* Tab close */
   window.addEventListener('beforeunload', () => {
     if (state.socket && state.roomCode) {
@@ -958,6 +960,16 @@ function init() {
     }
     endCall();
   });
+}
+
+function loadVersion() {
+  fetch('/version.json')
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById('app-version');
+      if (el) el.textContent = data.version;
+    })
+    .catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', init);
