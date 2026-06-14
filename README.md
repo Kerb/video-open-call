@@ -106,8 +106,8 @@ npm run dev
 | Событие | Данные | Описание |
 |---------|--------|----------|
 | `room-created` | `{ code }` | Комната создана |
-| `room-joined` | `{ code }` | Подключение выполнено |
-| `user-joined` | `{ userId }` | Собеседник подключился |
+| `room-joined` | `{ code, peerUuid }` | Подключение выполнено |
+| `user-joined` | `{ uuid, userId }` | Собеседник подключился |
 | `offer` | `{ sdp }` | Получен SDP offer |
 | `answer` | `{ sdp }` | Получен SDP answer |
 | `ice-candidate` | `{ candidate }` | Получен ICE candidate |
@@ -118,7 +118,7 @@ npm run dev
 | `room-full` | — | Комната переполнена |
 | `room-error` | `{ message }` | Общая ошибка |
 | `peer-disconnected` | `{ canReconnect }` | Собеседник отключился (canReconnect — можно ли переподключиться) |
-| `reconnect-success` | `{ code, isCreator }` | Переподключение выполнено успешно |
+| `reconnect-success` | `{ code, peerUuid, reconnectWindow }` | Переподключение выполнено успешно |
 | `peer-reconnected` | `{ uuid }` | Собеседник переподключился |
 
 ---
