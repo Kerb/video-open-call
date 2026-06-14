@@ -149,4 +149,128 @@ describe('Integration Tests', () => {
 
     clientSocket1.emit('create-room', { uuid: uuid1 });
   });
+
+  it('should send peer-reconnected when disconnected peer reconnects', (done) => {
+    const uuid1 = '550e8400-e29b-41d4-a716-446655440000';
+    const uuid2 = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    let roomCode;
+
+    clientSocket1.on('room-created', ({ code }) => {
+      roomCode = code;
+      clientSocket2.emit('join-room', { code, uuid: uuid2 });
+    });
+
+    clientSocket2.on('room-joined', () => {
+      clientSocket2.disconnect();
+    });
+
+    let peerReconnected = false;
+
+    clientSocket1.on('peer-disconnected', ({ canReconnect }) => {
+      expect(canReconnect).toBe(true);
+
+      setTimeout(() => {
+        clientSocket2 = ioc(`http://localhost:${serverPort}`);
+        clientSocket2.on('connect', () => {
+          clientSocket2.emit('reconnect-room', { code: roomCode, uuid: uuid2 });
+        });
+
+        clientSocket2.on('reconnect-success', () => {
+          expect(peerReconnected).toBe(true);
+          done();
+        });
+      }, 100);
+    });
+
+    clientSocket1.on('peer-reconnected', ({ uuid }) => {
+      expect(uuid).toBe(uuid2);
+      peerReconnected = true;
+    });
+
+    clientSocket1.emit('create-room', { uuid: uuid1 });
+  });
+
+  it('should handle both users disconnecting and reconnecting', (done) => {
+    const uuid1 = '550e8400-e29b-41d4-a716-446655440000';
+    const uuid2 = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    let roomCode;
+
+    clientSocket1.on('room-created', ({ code }) => {
+      roomCode = code;
+      clientSocket2.emit('join-room', { code, uuid: uuid2 });
+    });
+
+    clientSocket2.on('room-joined', () => {
+      clientSocket1.disconnect();
+      clientSocket2.disconnect();
+    });
+
+    let socket1Reconnected = false;
+    let socket2Reconnected = false;
+
+    const checkBothReconnected = () => {
+      if (socket1Reconnected && socket2Reconnected) {
+        done();
+      }
+    };
+
+    setTimeout(() => {
+      clientSocket1 = ioc(`http://localhost:${serverPort}`);
+      clientSocket2 = ioc(`http://localhost:${serverPort}`);
+
+      Promise.all([
+        new Promise(resolve => clientSocket1.on('connect', resolve)),
+        new Promise(resolve => clientSocket2.on('connect', resolve)),
+      ]).then(() => {
+        clientSocket1.emit('reconnect-room', { code: roomCode, uuid: uuid1 });
+        clientSocket2.emit('reconnect-room', { code: roomCode, uuid: uuid2 });
+
+        clientSocket1.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
+          expect(code).toBe(roomCode);
+          expect(isCreator).toBe(true);
+          expect(reconnectWindow).toBeGreaterThan(0);
+          socket1Reconnected = true;
+          checkBothReconnected();
+        });
+
+        clientSocket2.on('reconnect-success', ({ code, isCreator, reconnectWindow }) => {
+          expect(code).toBe(roomCode);
+          expect(isCreator).toBe(false);
+          expect(reconnectWindow).toBeGreaterThan(0);
+          socket2Reconnected = true;
+          checkBothReconnected();
+        });
+      });
+    }, 200);
+  });
+
+  it('should send room-not-found when reconnecting to expired room', (done) => {
+    const uuid1 = '550e8400-e29b-41d4-a716-446655440000';
+    const uuid2 = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+    let roomCode;
+
+    clientSocket1.on('room-created', ({ code }) => {
+      roomCode = code;
+      clientSocket2.emit('join-room', { code, uuid: uuid2 });
+    });
+
+    clientSocket2.on('room-joined', () => {
+      clientSocket2.disconnect();
+    });
+
+    clientSocket1.on('peer-disconnected', () => {
+      setTimeout(() => {
+        clientSocket2 = ioc(`http://localhost:${serverPort}`);
+        clientSocket2.on('connect', () => {
+          clientSocket2.emit('reconnect-room', { code: 'INVALID', uuid: uuid2 });
+        });
+
+        clientSocket2.on('room-not-found', () => {
+          done();
+        });
+      }, 100);
+    });
+
+    clientSocket1.emit('create-room', { uuid: uuid1 });
+  });
 });
