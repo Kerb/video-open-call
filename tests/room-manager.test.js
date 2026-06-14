@@ -80,6 +80,18 @@ describe('RoomManager', () => {
     expect(roomManager.getPeerUuid(code, uuid1)).toBeNull();
   });
 
+  it('should return null when uuid is not in the room', () => {
+    const uuid1 = 'aaa';
+    const socket1 = { id: 'socket-1', emit: vi.fn(), join: vi.fn() };
+    const { code } = roomManager.createRoom(uuid1, socket1);
+
+    expect(roomManager.getPeerUuid(code, 'nonexistent')).toBeNull();
+  });
+
+  it('should return null for non-existent room', () => {
+    expect(roomManager.getPeerUuid('NONEXIST', 'any-uuid')).toBeNull();
+  });
+
   it('should reject joining full room', () => {
     const uuid1 = 'user-1';
     const uuid2 = 'user-2';

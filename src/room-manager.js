@@ -234,6 +234,7 @@ class RoomManager {
   getOtherSocket(code, uuid) {
     const room = this.rooms.get(code.toUpperCase());
     if (!room) return null;
+    if (!room.slots.has(uuid)) return null;
     
     for (const slot of room.slots.values()) {
       if (slot.uuid !== uuid) {
@@ -246,6 +247,7 @@ class RoomManager {
   getPeerUuid(code, uuid) {
     const room = this.rooms.get(code.toUpperCase());
     if (!room) return null;
+    if (!room.slots.has(uuid)) return null;
     
     for (const slot of room.slots.values()) {
       if (slot.uuid !== uuid) {
