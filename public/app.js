@@ -361,9 +361,11 @@ function createPeerConnection() {
       clearTimeout(state.pcFailTimer);
       state.pcFailTimer = setTimeout(() => {
         if (state.isReconnecting || state.waitingForPeerReconnect) return;
-        showNotification('Соединение потеряно', 'error');
-        endCall();
-        screens.home();
+        state.isReconnecting = true;
+        transition(STATE.DISCONNECTED);
+        showReconnectingOverlay();
+        updateReconnectStatus('Попытка переподключения...');
+        scheduleRetry();
       }, 5000);
     }
   };
