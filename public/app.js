@@ -18,6 +18,17 @@ const state = {
   waitingForPeerReconnect: false,
 };
 
+const RECONNECT_CONFIG = {
+  maxAttempts: 5,
+  baseDelay: 1000,
+  maxDelay: 30000,
+};
+
+const retryState = {
+  attempt: 0,
+  timer: null,
+};
+
 function transition(newState) {
   const allowed = STATE_TRANSITIONS[state.appState];
   if (!allowed || !allowed.includes(newState)) {
@@ -437,6 +448,64 @@ async function handleIceCandidate(candidate) {
   } catch (err) {
     console.error('addIceCandidate error:', err);
   }
+}
+
+async function restartIce() {
+  const pc = state.peerConnection;
+  if (!pc || pc.signalingState === 'closed') {
+    createPeerConnection();
+    if (state.localStream) addLocalTracksToPC();
+    if (state.isRoomCreator) startWebRTC(true);
+    return;
+  }
+
+  try {
+    const offer = await pc.createOffer({ iceRestart: true });
+    await pc.setLocalDescription(offer);
+    if (state.socket && state.roomCode) {
+      state.socket.emit('offer', { sdp: pc.localDescription });
+    }
+  } catch (err) {
+    console.error('ICE restart failed, fallback to full renegotiation:', err);
+    closePeerConnection();
+    createPeerConnection();
+    if (state.localStream) addLocalTracksToPC();
+    if (state.isRoomCreator) startWebRTC(true);
+  }
+}
+
+function scheduleRetry() {
+  if (retryState.attempt >= RECONNECT_CONFIG.maxAttempts) return;
+  if (!state.isReconnecting) return;
+
+  const delay = Math.min(
+    RECONNECT_CONFIG.baseDelay * Math.pow(2, retryState.attempt),
+    RECONNECT_CONFIG.maxDelay
+  );
+  retryState.attempt++;
+
+  retryState.timer = setTimeout(() => {
+    if (!state.isReconnecting) return;
+    updateReconnectStatus(`Попытка ${retryState.attempt}/${RECONNECT_CONFIG.maxAttempts}...`);
+
+    if (!state.socket.connected) {
+      state.socket.connect();
+    }
+    if (state.socket.connected && state.roomCode && state.uuid) {
+      state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+    } else {
+      state.socket.once('connect', () => {
+        if (state.roomCode && state.uuid) {
+          state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+        }
+      });
+    }
+  }, delay);
+}
+
+function updateReconnectStatus(text) {
+  const el = document.getElementById('reconnect-status');
+  if (el) el.textContent = text;
 }
 
 function endCall() {
