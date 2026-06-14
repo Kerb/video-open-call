@@ -891,10 +891,40 @@ function init() {
   $('btn-chat').addEventListener('click', toggleChat);
   $('btn-hangup').addEventListener('click', handleHangup);
   $('btn-leave-reconnect').addEventListener('click', () => {
+    clearTimeout(retryState.timer);
+    retryState.attempt = 0;
     if (state.isReconnecting) {
       state.isReconnecting = false;
       hideReconnectingOverlay();
     }
+    state.waitingForPeerReconnect = false;
+    hidePeerWaitingOverlay();
+    handleHangup();
+  });
+
+  $('btn-retry-reconnect').addEventListener('click', () => {
+    retryState.attempt = 0;
+    clearTimeout(retryState.timer);
+    updateReconnectStatus('Повторная попытка...');
+
+    if (!state.socket.connected) {
+      state.socket.connect();
+    }
+
+    const tryNow = () => {
+      if (state.roomCode && state.uuid) {
+        state.socket.emit('reconnect-room', { code: state.roomCode, uuid: state.uuid });
+      }
+    };
+
+    if (state.socket.connected) {
+      tryNow();
+    } else {
+      state.socket.once('connect', tryNow);
+    }
+  });
+
+  $('btn-leave-peer-reconnect').addEventListener('click', () => {
     state.waitingForPeerReconnect = false;
     hidePeerWaitingOverlay();
     handleHangup();
