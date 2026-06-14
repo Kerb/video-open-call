@@ -914,3 +914,25 @@ body {
     height: 20px;
   }
 }
+
+.reconnect-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+#btn-retry-reconnect {
+  min-width: 200px;
+}
+
+.btn-danger {
+  background: rgba(220, 50, 50, 0.2);
+  color: #e05050;
+  border: 1px solid rgba(220, 50, 50, 0.4);
+}
+
+.btn-danger:hover {
+  background: rgba(220, 50, 50, 0.35);
+}
