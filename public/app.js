@@ -475,6 +475,7 @@ async function restartIce() {
 }
 
 function scheduleRetry() {
+  clearTimeout(retryState.timer);
   if (retryState.attempt >= RECONNECT_CONFIG.maxAttempts) return;
   if (!state.isReconnecting) return;
 
