@@ -137,14 +137,26 @@
       <div class="reconnecting-content">
         <div class="spinner"></div>
         <p>Потеряно соединение</p>
-        <p class="reconnecting-hint">Попытка переподключения...</p>
-        <button id="btn-leave-reconnect" class="btn btn-secondary">Выйти из комнаты</button>
+        <p class="reconnecting-hint" id="reconnect-status">
+          Попытка переподключения...
+        </p>
+        <div class="reconnect-buttons">
+          <button id="btn-retry-reconnect" class="btn btn-secondary">
+            Повторить попытку
+          </button>
+          <button id="btn-leave-reconnect" class="btn btn-secondary btn-danger">
+            Выйти из комнаты
+          </button>
+        </div>
       </div>
     </div>
 
     <div id="peer-reconnecting-indicator" style="display:none">
       <p>Собеседник временно отключился</p>
       <p class="hint">Ожидание переподключения...</p>
+      <button id="btn-leave-peer-reconnect" class="btn btn-secondary btn-danger">
+        Выйти из комнаты
+      </button>
     </div>
 
     <div id="notification" class="notification" style="display:none"></div>
