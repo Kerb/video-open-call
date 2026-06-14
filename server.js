@@ -149,7 +149,11 @@ function setupSocketHandlers(io) {
       }
 
       socket.join(result.code);
-      socket.emit('reconnect-success', { code: result.code, isCreator: result.isCreator });
+      socket.emit('reconnect-success', {
+        code: result.code,
+        isCreator: result.isCreator,
+        reconnectWindow: result.reconnectWindow,
+      });
 
       const otherSocket = roomManager.getOtherSocket(result.code, sanitizedUUID);
       if (otherSocket) {
