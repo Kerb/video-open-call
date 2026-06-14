@@ -6,7 +6,7 @@ const state = {
   localStream: null,
   peerConnection: null,
   roomCode: null,
-  isRoomCreator: false,
+  peerUuid: null,
   pendingStartWebRTC: false,
   pendingOffer: null,
   chatUnread: 0,
@@ -38,6 +38,10 @@ function transition(newState) {
   state.appState = newState;
   console.log(`State: ${newState}`);
   return true;
+}
+
+function shouldCreateOffer(myUuid, peerUuid) {
+  return myUuid < peerUuid;
 }
 
 const $ = (id) => document.getElementById(id);
@@ -137,7 +141,7 @@ function connectSocket() {
     }
   });
 
-  state.socket.on('reconnect-success', ({ code, isCreator }) => {
+  state.socket.on('reconnect-success', ({ code, peerUuid, reconnectWindow }) => {
     state.isReconnecting = false;
     retryState.attempt = 0;
     clearTimeout(retryState.timer);
@@ -145,26 +149,31 @@ function connectSocket() {
     hideNotification();
     transition(STATE.CONNECTING);
 
-    state.isRoomCreator = isCreator;
-    restartIce();
+    state.peerUuid = peerUuid;
+    if (shouldCreateOffer(state.uuid, state.peerUuid)) {
+      restartIce();
+    } else {
+      closePeerConnection();
+    }
   });
 
   /* Room events */
   state.socket.on('room-created', ({ code }) => {
     state.roomCode = code;
-    state.isRoomCreator = true;
+    state.peerUuid = null;
     transition(STATE.WAITING);
     enterRoom(code);
   });
 
-  state.socket.on('room-joined', ({ code }) => {
+  state.socket.on('room-joined', ({ code, peerUuid }) => {
     state.roomCode = code;
-    state.isRoomCreator = false;
+    state.peerUuid = peerUuid;
     transition(STATE.WAITING);
     enterRoom(code);
   });
 
-  state.socket.on('user-joined', () => {
+  state.socket.on('user-joined', ({ uuid }) => {
+    state.peerUuid = uuid;
     showNotification('Пользователь подключился', 'success');
     transition(STATE.CONNECTING);
     if (state.socket && state.localStream) {
@@ -174,7 +183,7 @@ function connectSocket() {
       }
     }
     if (state.localStream) {
-      startWebRTC(true);
+      startWebRTC();
     } else {
       state.pendingStartWebRTC = true;
     }
@@ -269,7 +278,7 @@ function connectSocket() {
     hidePeerWaitingOverlay();
     transition(STATE.CONNECTING);
 
-    if (state.isRoomCreator) {
+    if (shouldCreateOffer(state.uuid, state.peerUuid)) {
       restartIce();
     } else {
       closePeerConnection();
@@ -387,10 +396,10 @@ function createPeerConnection() {
   return pc;
 }
 
-async function startWebRTC(asCreator) {
+async function startWebRTC() {
   const pc = createPeerConnection();
 
-  if (asCreator) {
+  if (shouldCreateOffer(state.uuid, state.peerUuid)) {
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -472,7 +481,7 @@ async function restartIce() {
   if (!pc || pc.signalingState === 'closed') {
     createPeerConnection();
     if (state.localStream) addLocalTracksToPC();
-    if (state.isRoomCreator) startWebRTC(true);
+    startWebRTC();
     return;
   }
 
@@ -487,7 +496,7 @@ async function restartIce() {
     closePeerConnection();
     createPeerConnection();
     if (state.localStream) addLocalTracksToPC();
-    if (state.isRoomCreator) startWebRTC(true);
+    startWebRTC();
   }
 }
 
@@ -564,7 +573,7 @@ function endCall() {
   updateChatBadge();
 
   state.roomCode = null;
-  state.isRoomCreator = false;
+  state.peerUuid = null;
   state.pendingStartWebRTC = false;
   state.pendingOffer = null;
 
@@ -597,7 +606,7 @@ function enterRoom(code) {
     }
     if (state.pendingStartWebRTC && hasMedia) {
       state.pendingStartWebRTC = false;
-      startWebRTC(true);
+      startWebRTC();
     }
     if (state.pendingOffer) {
       const sdp = state.pendingOffer;
