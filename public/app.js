@@ -104,6 +104,9 @@ function connectSocket() {
   state.socket = io({
     autoConnect: false,
     transports: ['websocket', 'polling'],
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.5,
   });
 
   state.socket.on('connect', () => {
@@ -116,6 +119,7 @@ function connectSocket() {
       state.isReconnecting = true;
       transition(STATE.DISCONNECTED);
       showReconnectingOverlay();
+      scheduleRetry();
     } else if (state.appState !== STATE.HOME) {
       showNotification('Потеря соединения с сервером', 'error');
     }
@@ -134,14 +138,14 @@ function connectSocket() {
 
   state.socket.on('reconnect-success', ({ code, isCreator }) => {
     state.isReconnecting = false;
+    retryState.attempt = 0;
+    clearTimeout(retryState.timer);
     hideReconnectingOverlay();
     hideNotification();
     transition(STATE.CONNECTING);
-    closePeerConnection();
+
     state.isRoomCreator = isCreator;
-    if (isCreator) {
-      startWebRTC(true);
-    }
+    restartIce();
   });
 
   /* Room events */
@@ -262,7 +266,12 @@ function connectSocket() {
     state.waitingForPeerReconnect = false;
     hidePeerWaitingOverlay();
     transition(STATE.CONNECTING);
-    closePeerConnection();
+
+    if (state.isRoomCreator) {
+      restartIce();
+    } else {
+      closePeerConnection();
+    }
   });
 
   state.socket.connect();
@@ -510,6 +519,9 @@ function updateReconnectStatus(text) {
 }
 
 function endCall() {
+  clearTimeout(retryState.timer);
+  retryState.attempt = 0;
+
   transition(STATE.HOME);
 
   if (state.peerConnection) {
